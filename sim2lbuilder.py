@@ -2,6 +2,9 @@ import warnings
 import importlib
 import simtool
 from IPython.display import display
+from traitlets import Dict, validate, Unicode
+from ipywidgets import HBox, Label
+import ipysheet
 
 class WidgetConstructor():
     def __init__(self, layx=None):
@@ -10,44 +13,25 @@ class WidgetConstructor():
         self.layout = None
         for item, value in layx.items():
             if item == "inputs":
-                self.buildInputs(value)  
+                self.buildParameters(value, self.inputs)  
             elif item == "outputs":
-                self.buildOutputs(value)  
+                self.buildParameters(value, self.outputs)  
             elif item == "layout":
                 self.layout = self.buildLayout(value)  
             else:
                pass;#warnings.warn(item + " is ignored")  
-    
-    def buildInputs(self, inputs):
-        for item, value in inputs.items():
-            if type(value) == dict:
-                type_ = ""
-                module_ = "ipywidgets"
-                params_ = {}
-                click_ = None
-                for item2, value2 in value.items():
-                    if item2 == "type":
-                        type_ = value2;
-                    elif item2 == "click":
-                        click_ = value2;
-                    elif item2 == "module":
-                        module_ = value2;
-                    else:
-                        params_[item2] = value2
-                module = importlib.import_module(module_)
-                class_ = getattr(module, type_)
-                self.inputs[item] = class_(**params_)  
-                self.setClick(self.inputs[item], click_)
-            else:
-               warnings.warn(item + " is not a valid description")  
             
-    def buildOutputs(self, outputs):
+    def buildParameters(self, outputs, storage):
         for item, value in outputs.items():
             if type(value) == dict:
                 type_ = ""
                 module_ = "ipywidgets"
                 params_ = {}
                 click_ = None
+                if type(value) is dict and value.get("module", None) is None and value.get("layout", None) is None:
+                    value["layout"] = {'width' : 'auto'}
+                if type(value) is dict and value.get("module", None) is None and value.get("style", None) is None:
+                    value["style"] = {'description_width' : 'initial'}
                 for item2, value2 in value.items():
                     if item2 == "type":
                         type_ = value2;
@@ -59,8 +43,8 @@ class WidgetConstructor():
                         params_[item2] = value2
                 module = importlib.import_module(module_)
                 class_ = getattr(module, type_)
-                self.outputs[item] = class_(**params_)   
-                self.setClick(self.outputs[item], click_)                
+                storage[item] = class_(**params_)   
+                self.setClick(storage[item], click_)                
             else:
                warnings.warn(item + " is not a valid description")  
 
@@ -154,10 +138,18 @@ def simtool_constructor(self, node):
                     res['inputs'][i][j] = "BoundedFloatText"
                 elif inputs[i][j] == "Boolean":
                     res['inputs'][i][j] = "ToggleButton"
+                elif inputs[i][j] == "List":
+                    res['inputs'][i][j] = "SelectMultiple"
+                    res['inputs'][i]["options"] = inputs[i]["value"]
+                elif inputs[i][j] == "Dict":
+                    res['inputs'][i][j] = "DictSheet"
+                    res['inputs'][i]["module"] = "sim2lbuilder"
                 #elif inputs[i][j] == "List":
                 #    res['inputs'][i][j] = "TagsInput"
                 else:
                     res['inputs'][i][j] = "Text"
+            elif j == "desc":                 
+                res['inputs'][i]["description"] = inputs[i][j]
             else :
                 res['inputs'][i][j] = inputs[i][j]
             
@@ -174,4 +166,56 @@ def simtool_constructor(self, node):
         return {k:None for k in res.keys()}
     else :
         return res
+    
+
+
+class DictSheet(HBox):
+    value = Dict({}).tag(sync=True)
+    description = Unicode("").tag(sync=True)
+    def __init__(self, **kwargs):
+        self._table = ipysheet.sheet(columns = 2, row_headers = False, column_headers = ["key", "value"])
+        self._label = Label(kwargs.get("description", ""))
+        self.cells = []
+        self.updating = False
+        self.value = kwargs.get("value", {})
+        kwargs["children"] = [self._label, self._table]
+        HBox.__init__(self, **kwargs);
+   
+    def _handle_change(self, change):
+        table = [[0,0] for i in range(self._table.rows)]
+        for cell in self._table.cells:
+            table[cell.row_start][cell.column_start] = cell.value
+        self.updating = True
+        self.value= {i[0]:i[1] for i in table}
+        self.updating = False
+
+        
+    @validate('value')
+    def _valid_value(self, proposal):
+        if isinstance(proposal['value'], dict):
+            if self.updating is False:
+                self._table.rows = len(proposal['value'].keys())
+                i=0
+                for k,v in proposal['value'].items():
+                    if i >= len(self.cells):
+                        cell_0 = ipysheet.cell(i, 0, value=k)
+                        cell_0.observe(lambda c, s=self: s._handle_change(c), "value")
+                        cell_1 = ipysheet.cell(i, 1, value=v)
+                        cell_1.observe(lambda c, s=self: s._handle_change(c), "value")
+                        self.cells.append([cell_0, cell_1])
+                    else:
+                        self.cells[i][0].value = k
+                        self.cells[i][1].value = v
+                    i = i+1
+                if self._table.rows < len(self.cells):
+                    self.cells = self.cells[: self._table.rows - len(self.cells) or None]
+                self._table.cells = tuple([i for i in self._table.cells if i.row_start < self._table.rows])
+        return proposal['value']
+    
+    @validate('description')
+    def _valid_description(self, proposal):
+        self._label.value = proposal['value']
+        return proposal['value']
+a = DictSheet(description = "asd", value={'s':'s', "r":3})
+    
               
