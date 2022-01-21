@@ -2,8 +2,8 @@ import warnings
 import importlib
 import simtool
 from IPython.display import display
-from traitlets import Dict, validate, Unicode
-from ipywidgets import HBox, Label
+from traitlets import Dict, validate, Unicode, List
+from ipywidgets import HBox, Label, Output
 import ipysheet
 
 class WidgetConstructor():
@@ -139,8 +139,8 @@ def simtool_constructor(self, node):
                 elif inputs[i][j] == "Boolean":
                     res['inputs'][i][j] = "ToggleButton"
                 elif inputs[i][j] == "List":
-                    res['inputs'][i][j] = "SelectMultiple"
-                    res['inputs'][i]["options"] = inputs[i]["value"]
+                    res['inputs'][i][j] = "ListSheet"
+                    res['inputs'][i]["module"] = "sim2lbuilder"
                 elif inputs[i][j] == "Dict":
                     res['inputs'][i][j] = "DictSheet"
                     res['inputs'][i]["module"] = "sim2lbuilder"
@@ -168,54 +168,108 @@ def simtool_constructor(self, node):
         return res
     
 
-
 class DictSheet(HBox):
     value = Dict({}).tag(sync=True)
     description = Unicode("").tag(sync=True)
     def __init__(self, **kwargs):
-        self._table = ipysheet.sheet(columns = 2, row_headers = False, column_headers = ["key", "value"])
+        self.debug = Output()
+        self._table = ipysheet.Sheet(columns = 2, row_headers = False, column_headers = ["key", "value"])
         self._label = Label(kwargs.get("description", ""))
-        self.cells = []
         self.updating = False
         self.value = kwargs.get("value", {})
         kwargs["children"] = [self._label, self._table]
         HBox.__init__(self, **kwargs);
    
     def _handle_change(self, change):
-        table = [[0,0] for i in range(self._table.rows)]
-        for cell in self._table.cells:
-            table[cell.row_start][cell.column_start] = cell.value
-        self.updating = True
-        self.value= {i[0]:i[1] for i in table}
-        self.updating = False
-
+        if self.updating is False:
+            table = [[0,0] for i in range(self._table.rows)]
+            for cell in self._table.cells:
+                if cell.value == None:
+                    table[cell.row_start][cell.column_start] = ""
+                else :
+                    table[cell.row_start][cell.column_start] = cell.value
+            new_dict = {i[0]:i[1] for i in table if i[0] != ""}
+            self.value = new_dict
         
     @validate('value')
     def _valid_value(self, proposal):
         if isinstance(proposal['value'], dict):
+            self._table.rows = len(proposal['value'].keys()) + 1
+            for i in range(self._table.rows):
+                if i >= len(self._table.cells)/2:
+                    cell_0 = ipysheet.Cell(row_start=i,row_end=i, column_start=0, column_end=0, value="", type="text", choice=None)
+                    cell_0.observe(lambda c, s=self: s._handle_change(c), "value")
+                    self._table.cells = self._table.cells+(cell_0,)
+                    cell_1 = ipysheet.Cell(row_start=i,row_end=i, column_start=1, column_end=1, value="", type="text", choice=None)
+                    cell_1.observe(lambda c, s=self: s._handle_change(c), "value")
+                    self._table.cells = self._table.cells+(cell_1,)
+            self._table.cells = tuple([i for i in self._table.cells if i.row_start < self._table.rows])
+
             if self.updating is False:
-                self._table.rows = len(proposal['value'].keys())
+                self.updating = True
                 i=0
                 for k,v in proposal['value'].items():
-                    if i >= len(self.cells):
-                        cell_0 = ipysheet.cell(i, 0, value=k)
-                        cell_0.observe(lambda c, s=self: s._handle_change(c), "value")
-                        cell_1 = ipysheet.cell(i, 1, value=v)
-                        cell_1.observe(lambda c, s=self: s._handle_change(c), "value")
-                        self.cells.append([cell_0, cell_1])
-                    else:
-                        self.cells[i][0].value = k
-                        self.cells[i][1].value = v
-                    i = i+1
-                if self._table.rows < len(self.cells):
-                    self.cells = self.cells[: self._table.rows - len(self.cells) or None]
-                self._table.cells = tuple([i for i in self._table.cells if i.row_start < self._table.rows])
+                    if (self._table.cells[i*2+1].value != v):
+                        self._table.cells[i*2+1].value = v
+                    if (self._table.cells[i*2].value != k):
+                        self._table.cells[i*2].value = k
+                    i = i + 1
+                self._table.cells[i*2].value = ""
+                self._table.cells[i*2+1].value = ""
+            self.updating = False
         return proposal['value']
     
     @validate('description')
     def _valid_description(self, proposal):
         self._label.value = proposal['value']
         return proposal['value']
-a = DictSheet(description = "asd", value={'s':'s', "r":3})
     
-              
+class ListSheet(HBox):
+    value = List([]).tag(sync=True)
+    description = Unicode("").tag(sync=True)
+    def __init__(self, **kwargs):
+        self.debug = Output()
+        self._table = ipysheet.Sheet(columns = 1, row_headers = False, column_headers = ["value"])
+        self._label = Label(kwargs.get("description", ""))
+        self.updating = False
+        self.value = kwargs.get("value", {})
+        kwargs["children"] = [self._label, self._table]
+        HBox.__init__(self, **kwargs);
+   
+    def _handle_change(self, change):
+        if self.updating is False:
+            table = []
+            for i, cell in enumerate(self._table.cells):
+                if (cell.value == None or cell.value == ""):
+                    pass;
+                else :
+                    table.append(cell.value)
+            self.value = table
+        
+    @validate('value')
+    def _valid_value(self, proposal):
+        if isinstance(proposal['value'], list):
+            self._table.rows = len(proposal['value']) + 1
+            for i in range(self._table.rows):
+                if i >= len(self._table.cells):
+                    cell_0 = ipysheet.Cell(row_start=i,row_end=i, column_start=0, column_end=0, value="", type="text", choice=None)
+                    cell_0.observe(lambda c, s=self: s._handle_change(c), "value")
+                    self._table.cells = self._table.cells+(cell_0,)
+            self._table.cells = tuple([i for i in self._table.cells if i.row_start < self._table.rows])
+
+            if self.updating is False:
+                self.updating = True
+                i=0
+                for k in proposal['value']:
+                    if (self._table.cells[i].value != k):
+                        self._table.cells[i].value = k
+                    i = i + 1
+                self._table.cells[i].value = ""
+            self.updating = False
+        return proposal['value']
+    
+    @validate('description')
+    def _valid_description(self, proposal):
+        self._label.value = proposal['value']
+        return proposal['value']
+    
