@@ -110,6 +110,41 @@ class WidgetConstructor():
         
     def display(self):
         display(self.layout)
+        
+        
+def GetSimtoolDefaultSchema( simtool_name ):
+    schema = simtool_constructor(None, type('Node', (object,), {"value" :simtool_name}))
+    return {
+        'inputs': schema['inputs'],
+        'outputs': schema['outputs'],
+        'layout':{
+            'type': 'HBox',
+            'children' : { 
+                'inputs' : {
+                    'layout':{
+                        'width' : 'auto'
+                    },
+                    'type': 'VBox',
+                    'children' : {c:None for c in schema['inputs'].keys()}
+                },
+                'outputs' : {
+                    'type': 'VBox',
+                    'children':{ 
+                        'button':{
+                            'type' : 'Button',
+                            'click' : 'RunSimTool',
+                            'description' : 'Run SimTool'
+                        }, 'container' : {
+                            'type': 'Tab',
+                            'children' : {c:None for c in schema['outputs'].keys()} ,
+                            'titles': {c:None for c in schema['outputs'].keys()}  
+                        }
+                    }
+                }
+            }
+        }
+    }
+        
 
 def simtool_constructor(self, node):
     values = node.value.split(" ", 2)
@@ -160,8 +195,9 @@ def simtool_constructor(self, node):
                 res['outputs'][i][j] = "Output"
             else:
                 res['outputs'][i][j] = outputs[i][j]
-    for subpath in path.split("."):
-        res = res.get(subpath, {})
+    if path != "":
+        for subpath in path.split("."):
+            res = res.get(subpath, {})
     if action == "keys":
         return {k:None for k in res.keys()}
     else :
