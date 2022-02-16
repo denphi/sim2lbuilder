@@ -57,7 +57,7 @@ setup_args = {
     ],
     'include_package_data' : True,
     'install_requires' : [
-        'ipywidgets>=7.6.0',
+        'ipywidgets>=7.5.0',
         'simtool>=0.3.3',
         'ipython>=7.4.0',
         'traitlets>=4.3.2',

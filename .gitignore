@@ -7,3 +7,4 @@ __pycache__
 *.pyc
 RUNS
 .submit.log
+sim2lbuilder.egg-info
