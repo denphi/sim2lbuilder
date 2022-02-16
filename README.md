@@ -22,14 +22,9 @@
 
 ## Introduction
 
-The user-facing components of the Cyberinfrastructure (CI) ecosystem, science gateways and scientific workflow systems,
-share a common need of interfacing with physical resources (storage systems and execution environments) to manage data and execute codes (applications).
-
-However, there is no uniform, platform-independent way to describe either the resources or the applications. To address this, we propose uniform semantics for describing resources and applications that will be relevant to a diverse set of stakeholders.
-
-The SGCI Resource Description Specification provides a standard way for institutions and service providers to describe storage and computing infrastructure broadly available to the research computing and science gateway community. SGCI Resource descriptions provide a foundation for interoperability across gateway components and other cyberinfrastructure software.
-
-The current, initial version of the resource description language focuses on “traditional” HPC and high-throughput storage and computing resources
+sim2lbuilder is an utility library to create Graphical User interfaces on Jupyter notebooks.
+sim2lbuilder is based on ipywidgets, and allow users to describe Apps based on their inputs, outputs and layout. Callback functions can also be referenced to be triggered by events on the widgets
+sim2lbuilder can display described tools as widgets, or generate python code to be modified.
 
 ## Installation
 
