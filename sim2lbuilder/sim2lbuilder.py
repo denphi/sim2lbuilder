@@ -131,7 +131,14 @@ class WidgetConstructor(VBox):
                 elif self.format=="text" or self.format=="file":
                     if module_ not in self.libraries:
                         self.libraries[module_] = {}
-                    self.containers[uuid] = module_+"."+type_+"(" + ",".join([str(k)+"="+json.dumps(v) for k,v in params_.items()])+ ")"
+                    for k,v in params_.items():
+                        if (v is True):
+                           params_[k] = "True"
+                        elif (v is False):
+                           params_[k] = "False" 
+                        else:
+                           params_[k] = json.dumps(v) 
+                    self.containers[uuid] = module_+"."+type_+"(" + ",".join([str(k)+"="+v for k,v in params_.items()])+ ")"
                     storage[item] = "self.containers['" + uuid+ "']"
 
                     if click_ is not None:

@@ -6,5 +6,7 @@ _build
 __pycache__
 *.pyc
 RUNS
+examples/MyWidget.py
+examples/Widget0.py
 .submit.log
 sim2lbuilder.egg-info
