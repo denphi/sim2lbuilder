@@ -186,9 +186,23 @@ class WidgetConstructor(VBox):
                             child_ = self.buildLayout(value2)
                         if child_ is not None:
                             children_.append(child_)
+                elif type(value) == list:
+                    for item2 in value:
+                        child_ = None
+                        if (item2.replace("input.","") in self.inputs):
+                            child_ = self.inputs[item2.replace("input.","")]
+                        elif (item2.replace("output.","") in self.outputs):
+                            child_ = self.outputs[item2.replace("output.","")]
+                        elif (item2 in self.inputs):
+                            child_ = self.inputs[item2]
+                        elif (item2 in self.outputs):
+                            child_ = self.outputs[item2]
+                        else :
+                           warnings.warn(item2 + " is not a valid element")
+                        if child_ is not None:
+                            children_.append(child_)
                 else:
                    warnings.warn(item + " is not a valid description")
-
             else:
                 if self.format=="text" or self.format=="file":
                     params_[item] = json.dumps(value)
@@ -236,7 +250,7 @@ class WidgetConstructor(VBox):
         
 def GetSimtoolDefaultSchema( simtool_name, **kwargs ):
     schema = simtool_constructor(None, type('Node', (object,), {"value" :simtool_name}))
-    return {
+    dict_schema =  {
         'inputs': schema['inputs'],
         'outputs': schema['outputs'],
         'layout':{
@@ -247,7 +261,7 @@ def GetSimtoolDefaultSchema( simtool_name, **kwargs ):
                         'width' : 'auto'
                     },
                     'type': 'VBox',
-                    'children' : {"input."+str(c):None for c in schema['inputs'].keys()}
+                    'children' : ["input."+str(c) for c in schema['inputs'].keys()]
                 },
                 'outputs' : {
                     'type': 'VBox',
@@ -258,8 +272,8 @@ def GetSimtoolDefaultSchema( simtool_name, **kwargs ):
                             'description' : kwargs.get('button_description','Run SimTool')
                         }, 'container' : {
                             'type': kwargs.get('outputs_layout','Accordion'),
-                            'children' : {"output." + str(c):None for c in schema['outputs'].keys()} ,
-                            'titles': {c:None for c in schema['outputs'].keys()}
+                            'children' : ["output."+str(c) for c in schema['outputs'].keys()],
+                            'titles': [c for c in schema['outputs'].keys()]
                         }
                     },
                     'layout':{
@@ -269,6 +283,11 @@ def GetSimtoolDefaultSchema( simtool_name, **kwargs ):
             }
         }
     }
+    output = kwargs.get('output',None)
+    if output in dict_schema.keys():
+        dict_schema = dict_schema[output]
+        
+    return dict_schema
         
 
 def simtool_constructor(self, node):
@@ -287,8 +306,13 @@ def simtool_constructor(self, node):
     outputs = simtool.getSimToolOutputs(stl)
     res = {'inputs':{},'outputs':{}}
     for i in inputs:
-        if inputs[i].type in [None, "Element"]:
+        if inputs[i].type in [None]:
             pass;
+        elif inputs[i].type == "Element":
+            res['inputs'][i] = {}
+            res['inputs'][i]["type"] = "Text"
+            res['inputs'][i]["value"] = inputs[i]._e.name
+            res['inputs'][i]["description"] = inputs[i].description
         else:
             res['inputs'][i] = {}
             for j in inputs[i]:
@@ -312,20 +336,29 @@ def simtool_constructor(self, node):
                     elif inputs[i][j] == "Image":
                         res['inputs'][i][j] = "ImageUpload"
                         res['inputs'][i]["module"] = "sim2lbuilder"
-                    #elif inputs[i][j] == "List":
-                    #    res['inputs'][i][j] = "TagsInput"
+
                     else:
                         res['inputs'][i][j] = "Text"
                 elif j == "desc":                 
                     res['inputs'][i]["description"] = inputs[i][j]
+                elif j == "units":
+                    try:
+                        res['inputs'][i][j] = inputs[i][j].__str__()
+                    except:
+                        res['inputs'][i][j] = ""
                 else :
                     res['inputs'][i][j] = inputs[i][j]
-            
+           
     for i in outputs:
         res['outputs'][i] = {}
         for j in outputs[i]:
             if j == "type":
                 res['outputs'][i][j] = "Output"
+            elif j == "units":
+                try:
+                    res['outputs'][i][j] = inputs[i][j].__str__()
+                except:
+                    res['outputs'][i][j] = ""
             else:
                 res['outputs'][i][j] = outputs[i][j]
     if path != "":
@@ -343,7 +376,7 @@ class DictSheet(HBox):
     def __init__(self, **kwargs):
         self.debug = Output()
         self._table = ipysheet.Sheet(columns = 2, row_headers = False, column_headers = ["key", "value"])
-        self._label = Label(kwargs.get("description", ""))
+        self._label = HTML(value=kwargs.get("description", "")) ##Label
         self.updating = False
         self.value = kwargs.get("value", {})
         kwargs["children"] = [self._label, self._table]
@@ -399,7 +432,7 @@ class ListSheet(HBox):
     def __init__(self, **kwargs):
         self.debug = Output()
         self._table = ipysheet.Sheet(columns = 1, row_headers = False, column_headers = ["value"])
-        self._label = Label(kwargs.get("description", ""))
+        self._label = HTML(value=kwargs.get("description", "")) ##Label
         self.updating = False
         self.value = kwargs.get("value", [])
         kwargs["children"] = [self._label, self._table]
@@ -450,7 +483,7 @@ class ImageUpload(HBox):
         self.debug = Output()
         self._upload = FileUpload(accept='image/*',multiple=False)
         self._upload.observe(lambda c, s=self: ImageUpload._handle_change(s, c), names='_counter')
-        self._label = Label(kwargs.get("description", ""))
+        self._label = HTML(value=kwargs.get("description", "")) ##Label
         self.updating = False
         self.value = kwargs.get("value", Image.open("nanohub.png"))
         kwargs["children"] = [self._label, self._upload]
