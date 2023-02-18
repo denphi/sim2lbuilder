@@ -13,6 +13,7 @@
         <td>
             <a href="https://pepy.tech/project/sim2lbuilder"/>
             <img src="https://pepy.tech/badge/sim2lbuilder/month"/>
+            <img src="https://pepy.tech/badge/sim2lbuilder"/>
         </td>
     </tr>
 </table>
