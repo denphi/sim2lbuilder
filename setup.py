@@ -62,6 +62,7 @@ setup_args = {
         'ipython>=7.4.0',
         'traitlets>=4.3.2',
         'ipysheet>=0.4.1',
+        'nanohub-uidl>=0.1.5',
         'Pillow>=7.2'
     ], 
     'extras_require' : {

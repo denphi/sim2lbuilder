@@ -24,16 +24,569 @@
 import warnings
 import importlib
 import simtool
+import re
 from IPython.display import display
 from traitlets import Dict, validate, Unicode, List, Instance
-from ipywidgets import VBox, HBox, Label, Output, FileUpload, HTML
-import ipysheet
+from ipywidgets import VBox, HBox, Label, Output, FileUpload, HTML, Textarea, Layout
 from IPython.display import FileLink
 from PIL import Image
 import io, json
 import inspect
+from .utils import *
+import nanohubuidl.teleport as t
+from nanohubuidl.simtool import SimtoolBuilder
+from nanohubuidl.material import MaterialBuilder, MaterialComponents
+from nanohubuidl.material import MaterialContent, MaterialLabContent
+from nanohubuidl.plotly import PlotlyBuilder
+from nanohubuidl.app import AppBuilder, FormHelper
+from nanohubuidl.nanohub import Auth
 
 
+class UIDLConstructor():
+    
+    STATE_LOADER_STATUS = "loader_status"
+    STATE_LOADER_OPEN = "loader_open"
+    STATE_ERROR_STATUS = "error_status"
+    STATE_ERROR_OPEN = "error_open"
+    
+    def __init__(self, schema=None, **kwargs):
+        self.schema = schema
+        self.setup();
+        self.theme = MaterialBuilder.DefaultTheme()
+        self.appbar = MaterialBuilder.AppBar(
+            title=self.TOOLNAME,
+            callbacks = [
+              {
+                "type": "propCall2",
+                "calls": "refreshViews",
+                "args": ['self', '']
+              }
+            ] 
+        )
+        self.url_sim = "https://nanohub.org/api/results/simtools"
+        self.globals = t.TeleportGlobals()
+        self.globals.assets.append({"type": "style", "content": ".MuiSwitch-switchBase {padding:0px}"})
+        self.components = {
+            "InputDict" : InputDict(),
+            "InputList" : InputList(),
+            "InputNumber" : InputNumber(),
+            "InputInteger" : InputNumber(),
+            "InputChoice" : InputChoice(),
+            "InputText" : InputText(),
+            "InputBoolean" : InputBoolean()
+        }
+        
+    def setup(self):
+        self.TOOLNAME = self.schema["name"]
+        self.REVISION = self.schema["revision"]
+        self.MYTOOLNAME = re.sub(r'[^A-Z]', '', self.TOOLNAME.upper()) + ".HTML"
+        self.params = buildParams(self.schema['inputs'])
+        self.inputs_layout = buildLayout(self.schema['layout']['children']['inputs'])
+        self.outputs = self.buildOutputs(self.schema['outputs'])
+
+    def buildOutputs(self, schema):
+        outputs = []
+        for k,s in schema.items():
+            out = {}
+            out['id'] = k
+            out['title'] = s.get("label",k)
+            if s.get("type","None") == "output.Dict":                
+                out['function'] = 'loadPlotly'
+                out['dataset'] = {
+                    k: {
+                        'name' : k, 
+                        'x': '$index$0',
+                        'y': '$index$1',
+                    }
+                }
+                out['layout'] = {
+                    'title': '',
+                    'showlegend': True,
+                    'yaxis': {
+                        'title': '',
+                    },
+                    'xaxis': {
+                        'title': '',
+                    }
+                }
+            elif s.get("type","None") == "output.Array":                
+                out['function'] = 'loadPlotly'
+                out['dataset'] = {
+                    k: {
+                        'name' : k, 
+                        'y': '$value',
+                    }
+                }
+                out['layout'] = {
+                    'title': '',
+                    'showlegend': True,
+                    'yaxis': {
+                        'title': '',
+                    },
+                    'xaxis': {
+                        'title': '',
+                    }
+                }
+                
+                
+            outputs.append(out)        
+        
+        return outputs
+        
+        
+    def start(self):
+        self.Project = t.TeleportProject(self.TOOLNAME + "-" + str(self.REVISION) )
+        self.Project.globals = self.globals
+        self.Component = self.Project.root
+        self.Component.addStateVariable("open_params", {"type":"boolean", "defaultValue": False})
+        self.Component.addStateVariable("compare", {"type":"boolean", "defaultValue": False})
+        self.Component.addStateVariable("auth", {"type":"boolean", "defaultValue": False})
+        self.Component.addStateVariable("open_details", {"type":"boolean", "defaultValue": False})
+        self.Component.addStateVariable("src_detail", {"type":"string", "defaultValue": ""})        
+        self.Component.addStateVariable("cached_results", {"type":"array", "defaultValue": []})
+        self.Component.addStateVariable("active_cache", {"type":"array", "defaultValue": []})
+        self.Component.addStateVariable("lastCache", {"type":"string", "defaultValue": ""})
+        MaterialComponents.FormatCustomNumber(self.Project)
+        for k,v in self.components.items():
+            self.Project.components[k] = v
+        
+        self.ErrorMessage = SimtoolBuilder.Error( 
+            self.Component, 
+            error_status = UIDLConstructor.STATE_ERROR_STATUS,
+            error_open = UIDLConstructor.STATE_ERROR_OPEN,
+            is_open = False
+        )
+        self.Loader = SimtoolBuilder.Loader( 
+            self.Component, 
+            loader_status = UIDLConstructor.STATE_LOADER_STATUS,
+            loader_open = UIDLConstructor.STATE_LOADER_OPEN,
+            is_open = True
+        )
+
+        self.onRefreshViews = refreshViews(self.Project, self.Component)   
+        self.onDeleteHistory = deleteHistory(self.Project, self.Component)
+        self.onSquidDetail = squidDetail(self.Project, self.Component, self.TOOLNAME)
+        
+        loadPlotly(self.Project, self.Component)
+        loadMultiPlotly(self.Project, self.Component)
+        loadSequencePlotly(self.Project, self.Component)
+        
+        self.Login, CLogin = Auth.Session(
+            self.Project,
+            self.Component,
+            sessiontoken = "SESSIONTOKEN",
+            sessionnum = "00000",
+            url = "https://nanohub.org/api/developer/oauth/token",   
+        )
+        self.Login.content.events["onAuth"] = [
+            self.onRefreshViews[0],
+            { "type": "stateChange", "modifies": "auth", "newState": True},
+        ]
+
+        self.Login.content.events["onError"]=[
+            { "type": "stateChange", "modifies": "lastCache", "newState": ""},
+            { "type": "stateChange", "modifies": UIDLConstructor.STATE_ERROR_OPEN, "newState": False},
+            { "type": "stateChange", "modifies": UIDLConstructor.STATE_LOADER_OPEN, "newState": False},
+        ]
+        
+        self.Frame = t.TeleportElement(t.TeleportContent(elementType="iframe"))
+        self.Frame.content.style = {
+            'width' : '100%',
+            'height' : '100%'
+        }
+
+        self.Frame.content.attrs["src"] = {
+            "type": "dynamic",
+            "content": {
+                "referenceType": "state",
+                "id": "src_detail"
+            }    
+        }
+        
+        self.DetailsPanel = t.TeleportConditional(self.Frame)
+        self.DetailsPanel.reference = {"type": "static","content":'self.state.open_details'}
+        self.DetailsPanel.value = True
+        self.DetailsPanel.conditions =[{"operation" : "=="}]
+        self.buildBasePlot();
+
+        
+    def buildBasePlot(self):
+        BasePlot = PlotlyBuilder.BasePlot(self.Project, self.Component)
+        BasePlot.content.style['position'] = "relative"
+        BasePlot.content.style['width'] = "calc(100%)"
+        BasePlot.content.style['height'] = "calc(100vh - 130px)"
+        
+        CBasePlot2 = t.TeleportConditional(BasePlot)
+        CBasePlot2.reference = {"type": "static","content":'self.state.open_details'}
+        CBasePlot2.value = False
+        CBasePlot2.conditions =[{"operation" : "=="}]
+
+        self.CBasePlot = t.TeleportConditional(CBasePlot2)
+        self.CBasePlot.reference = {"type": "static","content":'self.state.open_params'}
+        self.CBasePlot.value = False
+        self.CBasePlot.conditions =[{"operation" : "=="}]
+
+        elem = self.Project.components["BasePlotlyComponent"].node.content
+        elem.attrs["config"] = {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "prop",
+            "id": "config"
+          }    
+        }
+        self.Project.components["BasePlotlyComponent"].propDefinitions["handlePurge"]["defaultValue"]="(e)=>{}"
+    
+    def getNeededOutputs(self):
+        outputs = {}
+        for output in self.outputs:
+            if "dataset" in output:
+                for k in output["dataset"].keys():
+                    outputs[k] = k
+            if "shapes" in output:
+                for k in output["shapes"].keys():
+                    outputs[k] = k
+        return list(outputs.keys())
+    
+    def getType(self, v):   
+        typev = v.get("type", "")
+        if typev == "input.Integer":
+            return "integer"
+        elif typev == "input.Number":
+            return "number"
+        elif typev == "input.Boolean":
+            return "boolean"
+        elif typev == "input.Dict":
+            return "dict"
+        elif typev == "input.List" or v["type"] == "input.Array":
+            return "array"
+        return "string"
+
+    def buildParametersPanel(self):
+        AppSettingsComponent = Settings(
+            self.Project,
+            self.Component,
+            layout = self.inputs_layout,
+            params = self.params,
+            url=self.url_sim,
+            toolname=self.TOOLNAME,
+            revision=self.REVISION,
+            outputs=self.getNeededOutputs(),
+            runSimulation="simtool")
+
+        parameters = {}
+        for k, v in self.schema['inputs'].items():
+            if isinstance(k, str) == False or k.isnumeric():
+                k = "_" + k
+            parameters[k] = v.get("value")
+            AppSettingsComponent.addStateVariable(
+                k, {"type": v, "defaultValue": v.get("value")}
+            )
+            if k in self.params.keys():
+                self.params[k].content.events["change"] = [
+                    {
+                        "type": "propCall2",
+                        "calls": "onChange",
+                        "args": ["{'" + k + "':e}"],
+                    },
+                    {
+                        "type": "stateChange",
+                        "modifies": k,
+                        "newState": "$e",
+                    }
+                ]
+        
+        AppSettingsComponent.addPropVariable(
+            "parameters", {"type": "object", "defaultValue": {}}
+        )
+        
+        self.loadDefaultSimulation = loadDefaultSimulation(self.Project, AppSettingsComponent);
+        self.Project.components["AppSettingsComponent"] = AppSettingsComponent
+        
+        self.Component.addStateVariable(
+            "parameters", {"type": "object", "defaultValue": parameters}
+        )
+        
+        AppSettings = t.TeleportElement(
+            t.TeleportContent(elementType="AppSettingsComponent")
+        )
+        AppSettings.content.attrs["parameters"] = {
+            "type": "dynamic",
+            "content": {"referenceType": "state", "id": "parameters"},
+        }
+        AppSettings.content.events["onChange"] = [
+            {
+                "type": "stateChange",
+                "modifies": "parameters",
+                "newState": "${...self.state.parameters, ...e}",
+            }
+        ]
+        AppSettings.content.events["onError"] = [{
+            "type": "stateChange",
+            "modifies": "lastCache",
+            "newState": ""
+        }, {
+            "type": "stateChange",
+            "modifies": UIDLConstructor.STATE_LOADER_OPEN,
+            "newState": False
+        }, {
+            "type": "stateChange",
+            "modifies": UIDLConstructor.STATE_ERROR_OPEN,
+            "newState": True
+        }, {
+            "type": "stateChange",
+            "modifies": UIDLConstructor.STATE_ERROR_STATUS,
+            "newState": '$e'
+        }]
+        AppSettings.content.events["click"] = [{
+            "type": "stateChange",
+            "modifies": UIDLConstructor.STATE_LOADER_OPEN,
+            "newState": True
+        }]
+
+        AppSettings.content.events["onStatusChange"] = [{
+            "type": "stateChange",
+            "modifies": UIDLConstructor.STATE_LOADER_STATUS,
+            "newState": "$e.target.value"
+        }]
+
+        AppSettings.content.events["onSuccess"] = [
+            {
+                "type": "stateChange",
+                "modifies": "open_plot",
+                "newState": '$self.state.visualization.id'
+            },
+            {
+                "type": "stateChange",
+                "modifies": UIDLConstructor.STATE_LOADER_OPEN,
+                "newState": False
+            },
+            {
+                "type": "stateChange",
+                "modifies": "open_params",
+                "newState": False
+            },
+            {
+                "type": "stateChange",
+                "modifies": "open_details",
+                "newState": False
+            },
+            {
+                "type": "stateChange",
+                "modifies": "lastCache",
+                "newState": "$arguments[1]"
+            },
+            self.onRefreshViews[0],
+        ]
+        
+        
+
+        CAPPSettings = t.TeleportConditional(AppSettings)
+        CAPPSettings.reference = {
+            "type": "dynamic",
+            "content": {
+                "referenceType": "state",
+                "id": "auth"
+            }
+        }
+        CAPPSettings.value = True
+        CAPPSettings.conditions =[{"operation" : "=="}]
+
+        ParametersPanel = MaterialBuilder.ExpansionPanel(
+            title="Parameters", 
+            disabled=False, 
+            expanded={
+              "type": "dynamic",
+              "content": {
+                "referenceType": "state",
+                "id": "open_params"
+              }    
+            }, 
+            content=[CAPPSettings]
+        )
+        ParametersPanel.content.events['change'] = [
+            { "type": "stateChange", "modifies": "open_params","newState": "$toggle"}
+        ]
+        ParametersPanel.content.style={"width":"100%"}
+        return ParametersPanel
+   
+    def buildExpansionPanel(self):
+        RESULTS = {}
+        for output in self.outputs:
+            if "visualization" not in self.Component.stateDefinitions:
+                self.Component.addStateVariable("visualization", {
+                    "type": "object",
+                    "defaultValue": output
+                })
+            RESULTS[output['id']] = {
+                'title': output['title'],
+                'action': {
+                    "type": "stateChange",
+                    "modifies": "visualization",
+                    "newState": output,
+                    "callbacks": self.onRefreshViews
+                }
+            }
+        RESULTS["details"] = {
+            'title': 'Simulation Details',
+            'action': [{
+                "type": "stateChange",
+                "modifies": "open_details",
+                "newState": True,
+                "callbacks": self.onSquidDetail
+            }]
+        }
+        RESULTS["settings"] = {
+            'title':'Settings',
+            'action': [
+                {
+                    "type": "stateChange",
+                    "modifies": "open_params",
+                    "newState": True,
+                },
+                {
+                    "type": "stateChange",
+                    "modifies": "open_details",
+                    "newState": False,
+                },
+            ]
+        }
+        
+
+        APPResults = AppBuilder.Results( 
+            self.Component,
+            results = RESULTS,
+            onClick = [{ "type": "stateChange", "modifies": UIDLConstructor.STATE_LOADER_OPEN,"newState": True }],
+            onLoad = [
+                { "type": "stateChange", "modifies": UIDLConstructor.STATE_LOADER_OPEN,"newState": False }
+            ],
+        )
+        ExpansionPanel = MaterialBuilder.ExpansionPanel(
+            title="Results", 
+            disabled=False,
+            content=[APPResults],
+            expanded=True  
+        )
+
+        return ExpansionPanel
+
+    
+    def buildLowerBar(self):
+        Text1 = t.TeleportStatic()
+        Text1.content = "Compare"
+        ToggleButton1 = t.TeleportElement(MaterialLabContent(elementType="ToggleButton"))
+        ToggleButton1.addContent(Text1)
+        ToggleButton1.content.events['click'] = [
+            { "type": "stateChange", "modifies": "compare" ,"newState": "$toggle", "callbacks" : self.onRefreshViews}
+        ]
+        ToggleButton1.content.attrs["selected"] = {
+          "type": "dynamic",
+          "content": {
+            "referenceType": "state",
+            "id": "compare"
+          }    
+        }
+
+        Cond1 = t.TeleportConditional(ToggleButton1)
+        Cond1.reference = {"type": "static","content":'self.state.cached_results.length'}
+        Cond1.value = 1
+        Cond1.conditions =[{"operation" : ">"}]
+
+
+        Text2 = t.TeleportStatic()
+        Text2.content = "Clear history"
+        ToggleButton2 = t.TeleportElement(MaterialLabContent(elementType="ToggleButton"))
+        ToggleButton2.addContent(Text2)
+        ToggleButton2.content.events['click'] = self.onDeleteHistory
+        Cond2 = t.TeleportConditional(ToggleButton2)
+        Cond2.reference = {"type": "static","content":'self.state.cached_results.length'}
+        Cond2.value = 2
+        Cond2.conditions =[{"operation" : ">="}]
+
+        ToggleButtonGroup = t.TeleportElement(MaterialLabContent(elementType="ToggleButtonGroup"))
+        ToggleButtonGroup.addContent(Cond1)
+        ToggleButtonGroup.addContent(Cond2)
+        ToggleButtonGroup.content.style = { 'width' : '100%', 'flexDirection': 'column', 'display': 'inline-flex' }
+        ToggleButtonGroup.content.attrs["orientation"] = "vertical"
+        ToggleButtonGroup.content.attrs["exclusive"] = True
+
+        LAppBar = t.TeleportElement(MaterialContent(elementType="AppBar"))
+        LAppBar.content.attrs["position"] = "fixed"
+        LAppBar.content.attrs["color"] = "transparent"
+        LAppBar.content.style = {'top': 'auto', 'bottom': '0','width': 'inherit', 'position': 'absolute'}
+
+        LAppBar.addContent(ToggleButtonGroup)
+        return LAppBar
+        
+    def buildThemeProvider(self):
+        Gridv2 = t.TeleportElement(MaterialContent(elementType="Grid"))
+        Gridv2.content.attrs["container"] = True
+        Gridv2.content.attrs["direction"] = "column"
+        Gridv2.addContent(self.DetailsPanel)
+        Gridv2.addContent(self.buildParametersPanel())
+        Gridv2.addContent(self.CBasePlot)  
+        Gridv2.content.style['width'] = "calc(100% - 200px)"
+        Gridv2.content.style['position'] = "relative"
+        Gridv2.content.style['height'] = "calc(-64px + 100vh)"
+        Gridv2.content.style['overflow'] = "auto"
+
+        Drawer = t.TeleportElement(MaterialContent(elementType="Paper"))
+        Drawer.addContent(self.buildExpansionPanel())
+        Drawer.addContent(self.buildLowerBar())
+
+        Drawer.content.style['position'] = "relative"
+        Drawer.content.style['width'] = "200px"
+        Drawer.content.style['height'] = "calc(100vh - 64px)"
+        Drawer.content.style['backgroundColor'] = "#EEE"
+
+        Gridh = t.TeleportElement(MaterialContent(elementType="Grid"))
+        Gridh.content.attrs["container"] = True
+        Gridh.content.attrs["direction"] = "row" 
+        Gridh.addContent(Drawer)
+        Gridh.addContent(Gridv2)  
+
+        Gridv = t.TeleportElement(MaterialContent(elementType="Grid"))
+        Gridv.content.attrs["container"] = True
+        Gridv.content.attrs["direction"] = "column"
+        Gridv.addContent(self.appbar)
+        Gridv.addContent(Gridh)
+
+        ThemeProvider = MaterialBuilder.ThemeProvider( self.Component, self.theme )
+        ThemeProvider.addContent(self.Login)
+        ThemeProvider.addContent(self.ErrorMessage)
+        ThemeProvider.addContent(self.Loader)
+        ThemeProvider.addContent(Gridv)
+        return ThemeProvider
+        
+    def assemble(self, **kwargs):
+        self.start();
+        self.Component.addNode(self.buildThemeProvider())
+        if (kwargs.get("jupyter_notebook_url",None) is not None):
+            self.Project.buildReact(
+                self.MYTOOLNAME, 
+                copy_libraries=kwargs.get("copy_libraries",False), 
+                run_uidl="local", 
+                jupyter_notebook_url = kwargs.get("jupyter_notebook_url","")
+            )
+        else:
+            self.Project.buildReact(
+                self.MYTOOLNAME, 
+                copy_libraries=kwargs.get("copy_libraries",False)
+            )
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
+            
 class WidgetConstructor(VBox):
     def __init__(self, layx=None, **kwargs):
         self.inputs = {}
@@ -44,6 +597,13 @@ class WidgetConstructor(VBox):
         self.methods = []
         self.format = kwargs.get("format","object")
         self.widget_name = kwargs.get("widget_name","MyWidget")
+        self.RunSimTool = WidgetConstructor.defaultRunSimTool
+        if 'name' in layx:
+            self.toolname = layx['name']
+        else:
+            self.toolname = ""
+        self.name = kwargs.get("widget_name","MyWidget")
+
         for item, value in layx.items():
             if item == "inputs":
                 self.buildParameters(value, self.inputs)  
@@ -54,7 +614,18 @@ class WidgetConstructor(VBox):
             else:
                pass;#warnings.warn(item + " is ignored") 
         VBox.__init__(self, **kwargs);
-            
+        
+    def defaultRunSimTool (widget, *kargs):
+        import simtool
+        stl = simtool.searchForSimTool(widget.toolname)
+        inputs = simtool.getSimToolInputs(stl)
+        for i,w in widget.inputs.items():
+            inputs[i].value = w.value
+        r = simtool.Run(stl, inputs)
+        for outk, out in widget.outputs.items():
+            with out:
+                print(r.read(outk))
+                
     def assemble(self):
         if self.format=="object":
             self.children = [self._layout]
@@ -108,11 +679,37 @@ class WidgetConstructor(VBox):
                     value["style"] = {'description_width' : 'initial'}
                 for item2, value2 in value.items():
                     if item2 == "type":
-                        type_ = value2;
+                        if value2.startswith("input."):
+                            if value2 == "input.Integer":
+                                type_ = "BoundedIntText"
+                            elif value2 == "input.Number":
+                                type_ = "BoundedFloatText"
+                            elif value2 == "input.Boolean":
+                                type_ = "ToggleButton"
+                            elif value2 == "input.List":
+                                type_ = "ListSheet"
+                                module_ = "sim2lbuilder"
+                            elif value2 == "Array":
+                                type_ = "ListSheet"
+                                module_ = "sim2lbuilder"
+                            elif value2 == "input.Dict":
+                                type_ = "DictSheet"
+                                module_ = "sim2lbuilder"
+                            elif value2 == "input.Choice":
+                                type_ = "Dropdown"
+                            elif ivalue2 == "input.Image":
+                                type_ = "ImageUpload"
+                                module_ = "sim2lbuilder"
+                            else:
+                                type_ = "Text"
+                        elif value2.startswith("output."):
+                            type_ = "Output"
+                        else:
+                            type_ = value2
                     elif item2 == "click":
-                        click_ = value2;
+                        click_ = value2
                     elif item2 == "module":
-                        module_ = value2;
+                        module_ = value2
                     else:
                         try:
                             value2j = json.dumps(value2)
@@ -251,6 +848,8 @@ class WidgetConstructor(VBox):
 def GetSimtoolDefaultSchema( simtool_name, **kwargs ):
     schema = simtool_constructor(None, type('Node', (object,), {"value" :simtool_name}))
     dict_schema =  {
+        'name': schema['name'],
+        'revision': schema['revision'],
         'inputs': schema['inputs'],
         'outputs': schema['outputs'],
         'layout':{
@@ -301,16 +900,19 @@ def simtool_constructor(self, node):
         action = values[2]        
     stl = simtool.searchForSimTool(tool)
     if (stl['notebookPath'] == None):
-        raise Except("Simtool is not valid")
+        raise Exception("Simtool is not valid")
     inputs = simtool.getSimToolInputs(stl)
     outputs = simtool.getSimToolOutputs(stl)
-    res = {'inputs':{},'outputs':{}}
+    revision = stl['simToolRevision'].replace("r", "")
+    name = tool
+
+    res = {'inputs':{},'outputs':{}, 'revision':revision, 'name':name}
     for i in inputs:
         if inputs[i].type in [None]:
             pass;
         elif inputs[i].type == "Element":
             res['inputs'][i] = {}
-            res['inputs'][i]["type"] = "Text"
+            res['inputs'][i]["type"] = ".Text"
             res['inputs'][i]["value"] = inputs[i]._e.name
             res['inputs'][i]["description"] = inputs[i].description
         else:
@@ -319,31 +921,12 @@ def simtool_constructor(self, node):
                 if inputs[i][j] is None:
                     pass;
                 elif j == "type":
-                    if inputs[i][j] == "Integer":
-                        res['inputs'][i][j] = "BoundedIntText"
-                    elif inputs[i][j] == "Number":
-                        res['inputs'][i][j] = "BoundedFloatText"
-                    elif inputs[i][j] == "Boolean":
-                        res['inputs'][i][j] = "ToggleButton"
-                    elif inputs[i][j] == "List" or inputs[i][j] == "Array":
-                        res['inputs'][i][j] = "ListSheet"
-                        res['inputs'][i]["module"] = "sim2lbuilder"
-                    elif inputs[i][j] == "Dict":
-                        res['inputs'][i][j] = "DictSheet"
-                        res['inputs'][i]["module"] = "sim2lbuilder"
-                    elif inputs[i][j] == "Choice":
-                        res['inputs'][i][j] = "Dropdown"
-                    elif inputs[i][j] == "Image":
-                        res['inputs'][i][j] = "ImageUpload"
-                        res['inputs'][i]["module"] = "sim2lbuilder"
-
-                    else:
-                        res['inputs'][i][j] = "Text"
+                    res['inputs'][i][j] = "input." + inputs[i][j]
                 elif j == "desc":                 
                     res['inputs'][i]["description"] = inputs[i][j]
                 elif j == "units":
                     try:
-                        res['inputs'][i][j] = inputs[i][j].__str__()
+                        res['inputs'][i][j] = str(inputs[i][j])
                     except:
                         res['inputs'][i][j] = ""
                 else :
@@ -351,16 +934,19 @@ def simtool_constructor(self, node):
            
     for i in outputs:
         res['outputs'][i] = {}
-        for j in outputs[i]:
-            if j == "type":
-                res['outputs'][i][j] = "Output"
-            elif j == "units":
-                try:
-                    res['outputs'][i][j] = inputs[i][j].__str__()
-                except:
-                    res['outputs'][i][j] = ""
-            else:
-                res['outputs'][i][j] = outputs[i][j]
+        if outputs[i].type in [None]:
+            pass;
+        else:
+            for j in outputs[i]:
+                if j == "type":
+                    res['outputs'][i][j] = "output." + outputs[i][j]
+                elif j == "units":
+                    try:
+                        res['inputs'][i][j] = str(outputs[i][j])
+                    except:
+                        res['outputs'][i][j] = ""
+                else:
+                    res['outputs'][i][j] = outputs[i][j]
     if path != "":
         for subpath in path.split("."):
             res = res.get(subpath, {})
@@ -368,57 +954,41 @@ def simtool_constructor(self, node):
         return {k:None for k in res.keys()}
     else :
         return res
-    
 
 class DictSheet(HBox):
     value = Dict({}).tag(sync=True)
     description = Unicode("").tag(sync=True)
     def __init__(self, **kwargs):
         self.debug = Output()
-        self._table = ipysheet.Sheet(columns = 2, row_headers = False, column_headers = ["key", "value"])
+        self._table = widgets.Textarea(
+            value=json.dumps(kwargs.get("value", [])),
+            placeholder='AddList',
+            disabled=False,
+            layout=Layout(width="100%")
+        )
+        self._table.observe(lambda c, s=self: s._handle_change(c), "value")
         self._label = HTML(value=kwargs.get("description", "")) ##Label
-        self.updating = False
-        self.value = kwargs.get("value", {})
+        self.value = kwargs.get("value", [])
         kwargs["children"] = [self._label, self._table]
         HBox.__init__(self, **kwargs);
-   
+
     def _handle_change(self, change):
-        if self.updating is False:
-            table = [[0,0] for i in range(self._table.rows)]
-            for cell in self._table.cells:
-                if cell.value == None:
-                    table[cell.row_start][cell.column_start] = ""
-                else :
-                    table[cell.row_start][cell.column_start] = cell.value
-            new_dict = {i[0]:i[1] for i in table if i[0] != ""}
-            self.value = new_dict
+        try:
+            table = json.loads(self._table.value)
+            self.value = table
+            self._table.layout.border="1px solid #000"
+        except:
+            self._table.layout.border="3px solid #F00"
+
         
     @validate('value')
     def _valid_value(self, proposal):
         if isinstance(proposal['value'], dict):
-            self._table.rows = len(proposal['value'].keys()) + 1
-            for i in range(self._table.rows):
-                if i >= len(self._table.cells)/2:
-                    cell_0 = ipysheet.Cell(row_start=i,row_end=i, column_start=0, column_end=0, value="", type="text", choice=None)
-                    cell_0.observe(lambda c, s=self: s._handle_change(c), "value")
-                    self._table.cells = self._table.cells+(cell_0,)
-                    cell_1 = ipysheet.Cell(row_start=i,row_end=i, column_start=1, column_end=1, value="", type="text", choice=None)
-                    cell_1.observe(lambda c, s=self: s._handle_change(c), "value")
-                    self._table.cells = self._table.cells+(cell_1,)
-            self._table.cells = tuple([i for i in self._table.cells if i.row_start < self._table.rows])
-
-            if self.updating is False:
-                self.updating = True
-                i=0
-                for k,v in proposal['value'].items():
-                    if (self._table.cells[i*2+1].value != v):
-                        self._table.cells[i*2+1].value = v
-                    if (self._table.cells[i*2].value != k):
-                        self._table.cells[i*2].value = k
-                    i = i + 1
-                self._table.cells[i*2].value = ""
-                self._table.cells[i*2+1].value = ""
-            self.updating = False
+            try:
+                self._table.value = json.dumps(proposal['value'])
+                self._table.layout.border="1px solid #000"
+            except:
+                self._table.layout.border="3px solid #F00"
         return proposal['value']
     
     @validate('description')
@@ -431,43 +1001,35 @@ class ListSheet(HBox):
     description = Unicode("").tag(sync=True)
     def __init__(self, **kwargs):
         self.debug = Output()
-        self._table = ipysheet.Sheet(columns = 1, row_headers = False, column_headers = ["value"])
+        self._table = Textarea(
+            value=json.dumps(kwargs.get("value", [])),
+            placeholder='AddList',
+            disabled=False,
+            layout=Layout(width="100%")
+        )
+        self._table.observe(lambda c, s=self: s._handle_change(c), "value")
         self._label = HTML(value=kwargs.get("description", "")) ##Label
-        self.updating = False
         self.value = kwargs.get("value", [])
         kwargs["children"] = [self._label, self._table]
         HBox.__init__(self, **kwargs);
-   
+
     def _handle_change(self, change):
-        if self.updating is False:
-            table = []
-            for i, cell in enumerate(self._table.cells):
-                if (cell.value == None or cell.value == ""):
-                    pass;
-                else :
-                    table.append(cell.value)
+        try:
+            table = json.loads(self._table.value)
             self.value = table
+            self._table.layout.border="1px solid #000"
+        except:
+            self._table.layout.border="3px solid #F00"
+
         
     @validate('value')
     def _valid_value(self, proposal):
         if isinstance(proposal['value'], list):
-            self._table.rows = len(proposal['value']) + 1
-            for i in range(self._table.rows):
-                if i >= len(self._table.cells):
-                    cell_0 = ipysheet.Cell(row_start=i,row_end=i, column_start=0, column_end=0, value="", type="text", choice=None)
-                    cell_0.observe(lambda c, s=self: s._handle_change(c), "value")
-                    self._table.cells = self._table.cells+(cell_0,)
-            self._table.cells = tuple([i for i in self._table.cells if i.row_start < self._table.rows])
-
-            if self.updating is False:
-                self.updating = True
-                i=0
-                for k in proposal['value']:
-                    if (self._table.cells[i].value != k):
-                        self._table.cells[i].value = k
-                    i = i + 1
-                self._table.cells[i].value = ""
-            self.updating = False
+            try:
+                self._table.value = json.dumps(proposal['value'])
+                self._table.layout.border="1px solid #000"
+            except:
+                self._table.layout.border="3px solid #F00"
         return proposal['value']
     
     @validate('description')

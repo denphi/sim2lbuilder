@@ -25,6 +25,7 @@
 
 
 from .sim2lbuilder import WidgetConstructor
+from .sim2lbuilder import UIDLConstructor
 from .sim2lbuilder import simtool_constructor
 from .sim2lbuilder import DictSheet
 from .sim2lbuilder import ListSheet
