@@ -36,7 +36,7 @@ from .utils import *
 import nanohubuidl.teleport as t
 from nanohubuidl.simtool import SimtoolBuilder
 from nanohubuidl.material import MaterialBuilder, MaterialComponents
-from nanohubuidl.material import MaterialContent, MaterialLabContent
+from nanohubuidl.material import MaterialContent
 from nanohubuidl.plotly import PlotlyBuilder
 from nanohubuidl.app import AppBuilder, FormHelper
 from nanohubuidl.nanohub import Auth
@@ -53,15 +53,8 @@ class UIDLConstructor():
         self.schema = schema
         self.setup();
         self.theme = MaterialBuilder.DefaultTheme()
-        self.appbar = MaterialBuilder.AppBar(
-            title=self.TOOLNAME,
-            callbacks = [
-              {
-                "type": "propCall2",
-                "calls": "refreshViews",
-                "args": ['self', '']
-              }
-            ] 
+        self.appbar = AppBar(
+            title=self.TOOLNAME
         )
         self.url_sim = "https://nanohub.org/api/results/simtools"
         self.globals = t.TeleportGlobals()
@@ -73,7 +66,8 @@ class UIDLConstructor():
             "InputInteger" : InputNumber(),
             "InputChoice" : InputChoice(),
             "InputText" : InputText(),
-            "InputBoolean" : InputBoolean()
+            "InputBoolean" : InputBoolean(),
+            "InputFile" : InputFile(),
         }
         
     def setup(self):
@@ -261,6 +255,21 @@ class UIDLConstructor():
             return "array"
         return "string"
 
+    def getValue(self, v):   
+        typev = v.get("type", "")
+        if typev == "input.Integer":
+            return v.get("value", 0)
+        elif typev == "input.Number":
+            return v.get("value", 0.0)
+        elif typev == "input.Boolean":
+            return v.get("value", False)
+        elif typev == "input.Dict":
+            return v.get("value", {})
+        elif typev == "input.List" or v["type"] == "input.Array":
+            return v.get("value", [])
+        return v.get("value", "")
+    
+    
     def buildParametersPanel(self):
         AppSettingsComponent = Settings(
             self.Project,
@@ -277,9 +286,9 @@ class UIDLConstructor():
         for k, v in self.schema['inputs'].items():
             if isinstance(k, str) == False or k.isnumeric():
                 k = "_" + k
-            parameters[k] = v.get("value")
+            parameters[k] = self.getValue(v)
             AppSettingsComponent.addStateVariable(
-                k, {"type": v, "defaultValue": v.get("value")}
+                k, {"type": v, "defaultValue": self.getValue(v)}
             )
             if k in self.params.keys():
                 self.params[k].content.events["change"] = [
@@ -417,8 +426,9 @@ class UIDLConstructor():
                     "type": "object",
                     "defaultValue": output
                 })
-            RESULTS[output['id']] = {
-                'title': output['title'],
+            oid = output.get('id',None)
+            RESULTS[oid] = {
+                'title': output.get('title', oid),
                 'action': {
                     "type": "stateChange",
                     "modifies": "visualization",
@@ -426,6 +436,12 @@ class UIDLConstructor():
                     "callbacks": self.onRefreshViews
                 }
             }
+        if "visualization" not in self.Component.stateDefinitions:
+            self.Component.addStateVariable("visualization", {
+                "type": "object",
+                "defaultValue": {}
+            })
+
         RESULTS["details"] = {
             'title': 'Simulation Details',
             'action': [{
@@ -451,29 +467,27 @@ class UIDLConstructor():
             ]
         }
         
-
-        APPResults = AppBuilder.Results( 
-            self.Component,
+        self.Component.addStateVariable(
+            "open_plot", {"type": "string", "defaultValue": list(RESULTS.keys())[0]}
+        )
+        APPResults = Results( 
             results = RESULTS,
             onClick = [{ "type": "stateChange", "modifies": UIDLConstructor.STATE_LOADER_OPEN,"newState": True }],
             onLoad = [
                 { "type": "stateChange", "modifies": UIDLConstructor.STATE_LOADER_OPEN,"newState": False }
             ],
         )
-        ExpansionPanel = MaterialBuilder.ExpansionPanel(
-            title="Results", 
-            disabled=False,
-            content=[APPResults],
-            expanded=True  
-        )
 
-        return ExpansionPanel
+
+        return APPResults
 
     
     def buildLowerBar(self):
         Text1 = t.TeleportStatic()
         Text1.content = "Compare"
-        ToggleButton1 = t.TeleportElement(MaterialLabContent(elementType="ToggleButton"))
+        ToggleButton1 = t.TeleportElement(MaterialContent(elementType="ToggleButton"))
+        ToggleButton1.content.attrs["value"] = "Compare"
+
         ToggleButton1.addContent(Text1)
         ToggleButton1.content.events['click'] = [
             { "type": "stateChange", "modifies": "compare" ,"newState": "$toggle", "callbacks" : self.onRefreshViews}
@@ -494,7 +508,9 @@ class UIDLConstructor():
 
         Text2 = t.TeleportStatic()
         Text2.content = "Clear history"
-        ToggleButton2 = t.TeleportElement(MaterialLabContent(elementType="ToggleButton"))
+        ToggleButton2 = t.TeleportElement(MaterialContent(elementType="ToggleButton"))
+        ToggleButton2.content.attrs["value"] = "Clear history"
+
         ToggleButton2.addContent(Text2)
         ToggleButton2.content.events['click'] = self.onDeleteHistory
         Cond2 = t.TeleportConditional(ToggleButton2)
@@ -502,17 +518,22 @@ class UIDLConstructor():
         Cond2.value = 2
         Cond2.conditions =[{"operation" : ">="}]
 
-        ToggleButtonGroup = t.TeleportElement(MaterialLabContent(elementType="ToggleButtonGroup"))
+        ToggleButtonGroup = t.TeleportElement(MaterialContent(elementType="ToggleButtonGroup"))
         ToggleButtonGroup.addContent(Cond1)
         ToggleButtonGroup.addContent(Cond2)
-        ToggleButtonGroup.content.style = { 'width' : '100%', 'flexDirection': 'column', 'display': 'inline-flex' }
+        ToggleButtonGroup.content.style = { 
+            'width' : '100%', 
+            'flexDirection': 'column', 
+            'display': 'inline-flex', 
+            'backgroundColor' : '#CCC'
+        }
         ToggleButtonGroup.content.attrs["orientation"] = "vertical"
         ToggleButtonGroup.content.attrs["exclusive"] = True
 
         LAppBar = t.TeleportElement(MaterialContent(elementType="AppBar"))
         LAppBar.content.attrs["position"] = "fixed"
         LAppBar.content.attrs["color"] = "transparent"
-        LAppBar.content.style = {'top': 'auto', 'bottom': '0','width': 'inherit', 'position': 'absolute'}
+        LAppBar.content.style = {'top': 'auto', 'bottom': '0px','width': 'inherit', 'position': 'fixed', 'left':'0px'}
 
         LAppBar.addContent(ToggleButtonGroup)
         return LAppBar
@@ -535,8 +556,9 @@ class UIDLConstructor():
 
         Drawer.content.style['position'] = "relative"
         Drawer.content.style['width'] = "200px"
-        Drawer.content.style['height'] = "calc(100vh - 64px)"
+        Drawer.content.style['height'] = "calc(100vh - 180px)"
         Drawer.content.style['backgroundColor'] = "#EEE"
+        Drawer.content.style['overflow'] = "auto"
 
         Gridh = t.TeleportElement(MaterialContent(elementType="Grid"))
         Gridh.content.attrs["container"] = True

@@ -720,6 +720,7 @@ def buildParams(inputs):
                 param.content.attrs["label"] = v.get("label", "")
                 param.content.attrs["description"] = v.get("description", "")
                 param.content.attrs["options"] = v.get("options", [])
+                param.content.attrs["variant"] = v.get("variant", "outlined")
             elif v["type"] == "input.Integer":
                 param = t.TeleportElement(t.TeleportContent(elementType="InputInteger"))
                 param.content.attrs["value"] = value
@@ -728,6 +729,7 @@ def buildParams(inputs):
                 param.content.attrs["suffix"] = v.get("units", "")
                 param.content.attrs["min"] = v.get("min", None)
                 param.content.attrs["max"] = v.get("max", None)
+                param.content.attrs["variant"] = v.get("variant", "outlined")
             elif v["type"] == "input.Number":
                 param = t.TeleportElement(t.TeleportContent(elementType="InputNumber"))
                 param.content.attrs["value"] = value
@@ -736,6 +738,7 @@ def buildParams(inputs):
                 param.content.attrs["suffix"] = v.get("units", "")
                 param.content.attrs["min"] = v.get("min", None)
                 param.content.attrs["max"] = v.get("max", None)
+                param.content.attrs["variant"] = v.get("variant", "outlined")
             elif v["type"] == "input.Text" :
                 param = t.TeleportElement(t.TeleportContent(elementType="InputText"))
                 param.content.attrs["value"] = value
@@ -743,28 +746,46 @@ def buildParams(inputs):
                 param.content.attrs["description"] = v.get("description", "")
                 param.content.attrs["suffix"] = v.get("units", "")
                 param.content.attrs["multiline"] = v.get("multiline", True)
+                param.content.attrs["variant"] = v.get("variant", "outlined")
             elif v["type"] == "input.Tag" :
                 param = t.TeleportElement(t.TeleportContent(elementType="InputText"))
                 param.content.attrs["value"] = value
                 param.content.attrs["label"] = v.get("label", "")
                 param.content.attrs["description"] = v.get("description", "")
+                param.content.attrs["variant"] = v.get("variant", "outlined")
             elif v["type"] == "input.Boolean":
                 param = t.TeleportElement(t.TeleportContent(elementType="InputBoolean"))
                 param.content.attrs["value"] = value
                 param.content.attrs["label"] = v.get("label", "")
                 param.content.attrs["description"] = v.get("description", "")
+                param.content.attrs["variant"] = v.get("variant", "outlined")
             elif v["type"] == "input.Dict":
                 param = t.TeleportElement(t.TeleportContent(elementType="InputDict"))
                 param.content.attrs["value"] = value
                 param.content.attrs["label"] = v.get("label", "")
                 param.content.attrs["description"] = v.get("description", "")
+                param.content.attrs["variant"] = v.get("variant", "outlined")
             elif v["type"] == "input.List" or v["type"] == "input.Array":
                 param = t.TeleportElement(t.TeleportContent(elementType="InputList"))
                 param.content.attrs["value"] = value
                 param.content.attrs["label"] = v.get("label", "")
                 param.content.attrs["description"] = v.get("description", "")
-
-            elif v["type"] == "input.File" or v["type"] == "input.Image" or v["type"] == "input.Element":
+                param.content.attrs["variant"] = v.get("variant", "outlined")
+            elif v["type"] == "input.File":
+                param = t.TeleportElement(t.TeleportContent(elementType="InputFile"))
+                param.content.attrs["value"] = value
+                param.content.attrs["label"] = v.get("label", "")
+                param.content.attrs["description"] = v.get("description", "")
+                param.content.attrs["accept"] = v.get("accept", "*")
+                param.content.attrs["variant"] = v.get("variant", "outlined")
+            elif v["type"] == "input.Image":
+                param = t.TeleportElement(t.TeleportContent(elementType="InputFile"))
+                param.content.attrs["value"] = value
+                param.content.attrs["label"] = v.get("label", "")
+                param.content.attrs["description"] = v.get("description", "")
+                param.content.attrs["accept"] = v.get("accept", "image/*")
+                param.content.attrs["variant"] = v.get("variant", "outlined")
+            elif v["type"] == "input.Element":
                 print(v["type"] + "is not supported");
 
             if param is not None:
@@ -852,12 +873,21 @@ def Settings(tp, Component, *args, **kwargs):
 
     Text0 = t.TeleportStatic()
     Text0.content = "Simulate"
-    ToggleButton0 = t.TeleportElement(m.MaterialLabContent(elementType="ToggleButton"))
+    ToggleButton0 = t.TeleportElement(m.MaterialContent(elementType="ToggleButton"))
     ToggleButton0.addContent(Text0)
     ToggleButton0.content.attrs["selected"] = True
     ToggleButton0.content.style = {"width":"inherit"}
     ToggleButton0.content.events['click'] = runSimulation
-        
+    ToggleButton0.content.attrs["value"] = "runSimulation"
+
+    ToggleButton1 = t.TeleportElement(m.MaterialContent(elementType="ToggleButton"))
+    ToggleButton1.addContent(Text0)
+    ToggleButton1.content.attrs["selected"] = True
+    ToggleButton1.content.style = {"width":"inherit"}
+    ToggleButton1.content.events['click'] = runSimulation
+    ToggleButton1.content.attrs["value"] = "runSimulation"
+
+    
     Tabs.addContent(Grid)
 
     Gridt = t.TeleportElement(m.MaterialContent(elementType="Grid"))
@@ -874,9 +904,10 @@ def Settings(tp, Component, *args, **kwargs):
         'args': [json.dumps(parameters)]
     })
 
-    Buttontt = t.TeleportElement(m.MaterialLabContent(elementType="ToggleButton"))
+    Buttontt = t.TeleportElement(m.MaterialContent(elementType="ToggleButton"))
     Buttontt.addContent(t.TeleportStatic(content="Restore Default Parameters"))
     Buttontt.content.attrs["selected"] = True
+    Buttontt.content.attrs["value"] = "Restore"
     Buttontt.content.style = {
         'backgroundColor':'#999999', 
         'color':'rgba(255, 255, 255, 0.87)',
@@ -886,7 +917,7 @@ def Settings(tp, Component, *args, **kwargs):
 
     onCleanCache = cleanCache(tp, NComponent)  
 
-    Buttontc = t.TeleportElement(m.MaterialLabContent(elementType="ToggleButton"))
+    Buttontc = t.TeleportElement(m.MaterialContent(elementType="ToggleButton"))
     Buttontc.addContent(t.TeleportStatic(content="Purge Cached Results"))
     Buttontc.content.attrs["selected"] = True
     Buttontc.content.style = {
@@ -895,11 +926,12 @@ def Settings(tp, Component, *args, **kwargs):
         'width':'inherit'
     }
     Buttontc.content.events['click'] = onCleanCache
- 
+    Buttontc.content.attrs["value"] = "onCleanCache"
+
 
     NComponent.node.addContent(ToggleButton0)
     NComponent.node.addContent(Tabs)
-    NComponent.node.addContent(ToggleButton0)
+    NComponent.node.addContent(ToggleButton1)
     NComponent.node.addContent(Buttontt)
     NComponent.node.addContent(Buttontc)
 
@@ -909,3 +941,64 @@ def Settings(tp, Component, *args, **kwargs):
 
     return NComponent
 
+def AppBar(*args, **kwargs):
+    AppBar = t.TeleportElement(m.MaterialContent(elementType="AppBar"))
+    AppBar.content.attrs["position"] = "static"
+    AppBar.content.attrs["color"] = kwargs.get("color", "primary")
+    AppBar.content.style = {"width": "inherit"}
+
+    ToolBar = t.TeleportElement(m.MaterialContent(elementType="Toolbar"))
+    ToolBar.content.attrs["variant"] = kwargs.get("variant", "regular")
+
+    Typography = t.TeleportElement(m.MaterialContent(elementType="Typography"))
+    Typography.content.attrs["variant"] = "h6"
+    Typography.content.style = {"flex": 1, "textAlign": "center"}
+    TypographyText = t.TeleportStatic(content=kwargs.get("title", ""))
+    Typography.addContent(TypographyText)
+    
+    ToolBar.addContent(Typography)
+    AppBar.addContent(ToolBar)
+    return AppBar
+
+
+def Results(*args, **kwargs):
+    results = kwargs.get("results", {})
+    onClick = kwargs.get("onClick", [])
+    onLoad = kwargs.get("onLoad", [])
+    ToggleButtonGroup = t.TeleportElement(
+        m.MaterialContent(elementType="ToggleButtonGroup")
+    )
+    ToggleButtonGroup.content.style = {
+        "width": "100%",
+        "flexDirection": "column",
+        "display": "inline-flex",
+    }
+    ToggleButtonGroup.content.attrs["orientation"] = "vertical"
+    ToggleButtonGroup.content.attrs["exclusive"] = True
+
+    ToggleButtonGroup.content.attrs["value"] = {
+        "type": "dynamic",
+        "content": {"referenceType": "state", "id": "open_plot"},
+    }
+
+    for k, v in results.items():
+        v_action = []
+        if isinstance(v["action"], dict):
+            v_action.append(v["action"])
+        elif isinstance(v["action"], list):
+            for va in v["action"]:
+                v_action.append(va)
+        v_action.append(
+            {"type": "stateChange", "modifies": "open_plot", "newState": k}
+        )
+        ToggleButton = t.TeleportElement(
+            m.MaterialContent(elementType="ToggleButton")
+        )
+        ToggleButton.content.attrs["value"] = k
+        ToggleButton.content.events["click"] = onClick + v_action + onLoad
+        Typography = t.TeleportElement(m.MaterialContent(elementType="Typography"))
+        Typography.addContent(t.TeleportStatic(content=v["title"]))
+        ToggleButton.addContent(Typography)
+        ToggleButtonGroup.addContent(ToggleButton)
+
+    return ToggleButtonGroup

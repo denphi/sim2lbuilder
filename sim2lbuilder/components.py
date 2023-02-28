@@ -470,7 +470,7 @@ def InputChoice():
     helpertext.addContent(
         t.TeleportDynamic(content={"referenceType": "prop", "id": "description"})
     )
-    label.addContent(helpertext)
+    label.addContent(labeltext)
     string = t.TeleportElement(m.MaterialContent(elementType="Select"))
     string.content.attrs["select"] = True
     string.content.attrs["fullWidth"] = True
@@ -514,10 +514,10 @@ def InputChoice():
     
     Component = t.TeleportComponent(name, form)
     Component.addStateVariable(
-        "value", {"type": "string", "defaultValue": "self.props.value"}
+        "value", {"type": "string", "defaultValue": "$self.props.value"}
     )
     Component.addStateVariable(
-        "lastDefault", {"type": "string", "defaultValue": "self.props.value"}
+        "lastDefault", {"type": "string", "defaultValue": "$self.props.value"}
     )
     Component.addPropVariable("variant", {"type": "string", "defaultValue": "outlined"})
     Component.addPropVariable("label", {"type": "string", "defaultValue": ""})
@@ -589,10 +589,10 @@ def InputText():
     )
     Component = t.TeleportComponent(name, string)
     Component.addStateVariable(
-        "value", {"type": "string", "defaultValue": "self.props.value"}
+        "value", {"type": "string", "defaultValue": "$self.props.value"}
     )
     Component.addStateVariable(
-        "lastDefault", {"type": "string", "defaultValue": "self.props.value"}
+        "lastDefault", {"type": "string", "defaultValue": "$self.props.value"}
     )
 
     Component.addPropVariable("variant", {"type": "string", "defaultValue": "outlined"})
@@ -657,7 +657,7 @@ def InputBoolean():
     helpertext.addContent(
         t.TeleportDynamic(content={"referenceType": "prop", "id": "description"})
     )
-    label.addContent(helpertext)
+    label.addContent(labeltext)
 
     string = t.TeleportElement(m.MaterialContent(elementType="Switch"))
 
@@ -685,10 +685,10 @@ def InputBoolean():
     Component = t.TeleportComponent(name, form)
 
     Component.addStateVariable(
-        "value", {"type": "string", "defaultValue": "self.props.value"}
+        "value", {"type": "string", "defaultValue": "$self.props.value"}
     )
     Component.addStateVariable(
-        "lastDefault", {"type": "string", "defaultValue": "self.props.value"}
+        "lastDefault", {"type": "string", "defaultValue": "$self.props.value"}
     )
 
     Component.addPropVariable("variant", {"type": "string", "defaultValue": "outlined"})
@@ -715,6 +715,150 @@ def InputBoolean():
             "type": "func",
             "defaultValue": """(s,e)=>{
             s.props.onChange(e)
+        }""",
+        },
+    )
+
+    return Component
+
+def InputFile():
+    name = "InputFile"
+    
+    container = t.TeleportElement(m.MaterialContent(elementType="FormControl"))
+    container.content.attrs["fullWidth"] = True
+
+    form = t.TeleportElement(m.MaterialContent(elementType="FormControl"))
+    form.content.attrs["fullWidth"] = True
+    form.content.attrs["variant"] = {
+        "type": "dynamic",
+        "content": {"referenceType": "prop", "id": "variant"},
+    }
+    form.content.style = {
+        "border": "1px solid rgba(0, 0, 0, 0.23)",
+        "borderRadius": "4px",
+        "flexDirection": "row",
+        "width": "100%",
+        "padding" : "5px"
+    }
+    label = t.TeleportElement(m.MaterialContent(elementType="InputLabel"))
+    label.content.attrs["htmlFor"] = "component-filled"
+    label.content.attrs["shrink"] = True
+    label.content.style = {"background": "white", "padding": "0px 2px", "left": "-5px"}
+    labeltext = t.TeleportDynamic(content={"referenceType": "prop", "id": "label"})
+
+    helpertext = t.TeleportElement(m.MaterialContent(elementType="FormHelperText"))
+    helpertext.addContent(
+        t.TeleportDynamic(content={"referenceType": "prop", "id": "description"})
+    )
+    helpertext.content.style = {
+        "marginLeft" : "14px"
+    }
+    label.addContent(labeltext)
+    
+    string = t.TeleportElement(m.MaterialContent(elementType="Button"))
+    inputs = t.TeleportElement(t.TeleportContent(elementType="input"))
+    inputs.content.attrs["type"] = "file"
+    inputs.content.attrs["accept"] = {
+        "type": "dynamic",
+        "content": {"referenceType": "prop", "id": "accept"},
+    }
+    inputs.content.attrs["hidden"] = True
+    inputs.content.style = {'display': 'none'}
+    label1 = t.TeleportStatic(content="Upload File [")
+    label2 = t.TeleportDynamic(content={
+        "referenceType": "state",
+        "id": "filename"
+    })
+    label3 = t.TeleportStatic(content="]")
+    icon = t.TeleportElement(m.MaterialContent(elementType="Icon"))
+    icontext = t.TeleportStatic(content="file_upload")
+    string.content.attrs["component"] = "label"
+  
+    string.content.attrs["fullWidth"] = True
+    string.content.events["change"] = []
+    string.content.events["change"].append({
+        "type": "propCall2",
+        "calls": "onValidate",
+        "args": ["self", "e.target.files"],
+    })
+    icon.addContent(icontext)
+    string.addContent(icon)
+    string.addContent(label1)
+    string.addContent(label2)
+    string.addContent(label3)
+    string.addContent(inputs)
+
+    form.addContent(label)
+    form.addContent(string)
+    container.addContent(form)
+    container.addContent(helpertext)
+    Component = t.TeleportComponent(name, container)
+    
+    Component.addStateVariable("filename", {
+        "type": "string",
+        "defaultValue": ""
+    })
+    Component.addStateVariable("error", {
+        "type": "boolean",
+        "defaultValue": False
+    })
+    Component.addPropVariable("variant", {
+        "type": "string",
+        "defaultValue": "outlined"
+    })
+    Component.addPropVariable("label", {
+        "type": "string", 
+        "defaultValue": ""
+    })
+    Component.addPropVariable("accept", {
+        "type": "string", 
+        "defaultValue": "*"
+    })
+    Component.addPropVariable("description", {
+        "type": "string",
+        "defaultValue": ""
+    })
+    Component.addPropVariable("value", {
+        "type": "boolean",
+        "defaultValue": False
+    })
+    Component.addPropVariable("onChange", {
+        "type": "func",
+        "defaultValue": "(e)=>{}"
+    })
+    Component.addPropVariable(
+        "onValidate",
+        {
+            "type":
+            "func",
+            "defaultValue":
+            """(s,e)=>{
+            if (!e) {
+              return;
+            }
+            let file = e[0];
+            const reader = new FileReader();
+            reader.onload = (evt) => {
+              try{
+                if (!evt?.target?.result) {
+                  return;
+                }
+                const { result } = evt.target;
+                console.log(result);
+                var binary = '';
+                var bytes = new Uint8Array( result );
+                var len = bytes.byteLength;
+                for (var i = 0; i < len; i++) {
+                  binary += String.fromCharCode( bytes[ i ] );
+                }
+                let bt =  window.btoa( binary );
+                s.setState({'error':false, 'filename':file.name})
+                s.props.onChange("base64://"+bt)
+              } catch {
+                s.setState({'error':true, 'filename':''})
+              }
+            };
+            reader.readAsArrayBuffer(file);
         }""",
         },
     )
