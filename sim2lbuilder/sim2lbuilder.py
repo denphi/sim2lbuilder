@@ -25,6 +25,7 @@ import warnings
 import importlib
 import simtool
 import re
+import os
 from IPython.display import display
 from traitlets import Dict, validate, Unicode, List, Instance
 from ipywidgets import VBox, HBox, Label, Output, FileUpload, HTML, Textarea, Layout
@@ -40,6 +41,8 @@ from nanohubuidl.material import MaterialContent
 from nanohubuidl.plotly import PlotlyBuilder
 from nanohubuidl.app import AppBuilder, FormHelper
 from nanohubuidl.nanohub import Auth
+from nanohubuidl.ipywidgets import buildWidget
+
 
 
 class UIDLConstructor():
@@ -56,9 +59,33 @@ class UIDLConstructor():
         self.appbar = AppBar(
             title=self.TOOLNAME
         )
-        self.url_sim = "https://nanohub.org/api/results/simtools"
+        self.url = kwargs.get("url", "https://nanohub.org")
+        self.drawer_width = kwargs.get("drawer_width", 250) 
+        self.width = kwargs.get("width", "100%") 
+        self.height = kwargs.get("height", "100%") 
         self.globals = t.TeleportGlobals()
-        self.globals.assets.append({"type": "style", "content": ".MuiSwitch-switchBase {padding:0px}"})
+        loader = ".loader:empty {";
+        loader +="position: absolute;";
+        loader +="top: calc(50% - 4em);";
+        loader +="left: calc(50% - 4em);";
+        loader +="width: 6em;";
+        loader +="height: 6em;";
+        loader +="border: 1.1em solid #f1f1f1;";
+        loader +="border-left: 1.1em solid #699FBB;";
+        loader +="border-radius: 50%;";
+        loader +="animation: load8 1.1s infinite linear;";
+        loader +="}";
+        self.globals.addAsset("loader", {"type": "style", "content": loader})
+        animation ="@keyframes load8 {";
+        animation +="0% {";
+        animation +="transform: rotate(0deg);";
+        animation +="}";
+        animation +="100% {";
+        animation +="transform: rotate(360deg);";
+        animation +="}";
+        animation +="}";
+        self.globals.addAsset("animation", {"type": "style", "content": animation})
+        
         self.components = {
             "InputDict" : InputDict(),
             "InputList" : InputList(),
@@ -69,6 +96,19 @@ class UIDLConstructor():
             "InputBoolean" : InputBoolean(),
             "InputFile" : InputFile(),
         }
+        self.details = kwargs.get("details", False)
+        self.SESSIONTOKEN = "SESSIONTOKEN"
+        self.SESSIONID = "00000"
+        try:
+            if "SESSIONDIR" in os.environ:
+                with open(os.environ["SESSIONDIR"]+"/resources") as file:
+                    lines = [line.split(" ", 1) for line in file.readlines()]
+                    properties = {line[0].strip(): line[1].strip() for line in lines if len(line)==2}
+                    self.SESSIONTOKEN = properties["session_token"]
+                    self.SESSIONID = properties["sessionid"]
+        except:
+            self.SESSIONTOKEN = "SESSIONTOKEN"
+            self.SESSIONID = "00000"
         
     def setup(self):
         self.TOOLNAME = self.schema["name"]
@@ -88,43 +128,84 @@ class UIDLConstructor():
                 out['function'] = 'loadPlotly'
                 out['dataset'] = {
                     k: {
+                        'type': 'scatter',
                         'name' : k, 
                         'x': '$index$0',
                         'y': '$index$1',
                     }
                 }
-                out['layout'] = {
-                    'title': '',
-                    'showlegend': True,
-                    'yaxis': {
-                        'title': '',
-                    },
-                    'xaxis': {
-                        'title': '',
-                    }
-                }
+                out['layout'] = {'title': k}
+                outputs.append(out) 
             elif s.get("type","None") == "output.Array":                
                 out['function'] = 'loadPlotly'
                 out['dataset'] = {
-                    k: {
+                    k: {                        
+                        'type': 'scatter',
                         'name' : k, 
                         'y': '$value',
                     }
                 }
-                out['layout'] = {
-                    'title': '',
-                    'showlegend': True,
-                    'yaxis': {
-                        'title': '',
-                    },
-                    'xaxis': {
-                        'title': '',
+                out['layout'] = {'title': k} 
+                outputs.append(out) 
+            elif s.get("type","None") in ["output.Tag","output.Choice"]:                
+                out['function'] = 'loadTablePlotly'
+                out['dataset'] = {
+                    k: {
+                        'header': {
+                            'values': '$value',
+                            'fill': {'color': 'gray'},
+                        },
+                        'cells':{
+                            'values': '$value',
+                        }                    
                     }
                 }
-                
-                
-            outputs.append(out)        
-        
+                out['layout'] = {'title': k}
+                outputs.append(out) 
+            elif s.get("type","None") in ["output.Number","output.Boolean","output.Integer"]:                
+                out['function'] = 'loadValuePlotly'
+                out['dataset'] = {
+                    k: {
+                        'name' : k, 
+                        'mode' : 'markers',
+                        'y': '$' + str(k),
+                        'type': 'scatter',
+                        'marker' : {
+                            'size' : 20,
+                        },
+                    }
+                }
+                out['layout'] = { 'title': k }
+                outputs.append(out) 
+            elif s.get("type",None) in ["output.Image"]:
+                out['function'] = 'loadHTML'
+                out['dataset'] = {
+                    k: {
+                        'type':'div', 
+                        'style':'padding:10px', 
+                        'children':[{
+                            'type':'img',
+                            'src':'$value',
+                            'width':'100%'
+                        }]
+                    }
+                }
+                outputs.append(out) 
+            elif s.get("type",None) in ["output.Text"]:
+                out['function'] = 'loadHTML'
+                out['dataset'] = {
+                    k: {
+                        'type':'div', 
+                        'style':'padding:10px', 
+                        'children':[{
+                            'type':'pre',
+                            'textContent':'$value'
+                        }]
+                    }
+                }
+                outputs.append(out) 
+            else:
+                 warnings.warn( k + " is not supported by default")  
         return outputs
         
         
@@ -136,7 +217,7 @@ class UIDLConstructor():
         self.Component.addStateVariable("compare", {"type":"boolean", "defaultValue": False})
         self.Component.addStateVariable("auth", {"type":"boolean", "defaultValue": False})
         self.Component.addStateVariable("open_details", {"type":"boolean", "defaultValue": False})
-        self.Component.addStateVariable("src_detail", {"type":"string", "defaultValue": ""})        
+        self.Component.addStateVariable("src_detail", {"type":"object", "defaultValue": { '__html': '' }})        
         self.Component.addStateVariable("cached_results", {"type":"array", "defaultValue": []})
         self.Component.addStateVariable("active_cache", {"type":"array", "defaultValue": []})
         self.Component.addStateVariable("lastCache", {"type":"string", "defaultValue": ""})
@@ -164,13 +245,16 @@ class UIDLConstructor():
         loadPlotly(self.Project, self.Component)
         loadMultiPlotly(self.Project, self.Component)
         loadSequencePlotly(self.Project, self.Component)
+        loadTablePlotly(self.Project, self.Component)
+        loadValuePlotly(self.Project, self.Component)
+        loadHTML(self.Project, self.Component)
         
         self.Login, CLogin = Auth.Session(
             self.Project,
             self.Component,
-            sessiontoken = "SESSIONTOKEN",
-            sessionnum = "00000",
-            url = "https://nanohub.org/api/developer/oauth/token",   
+            sessiontoken = self.SESSIONTOKEN,
+            sessionnum = self.SESSIONID,
+            url = self.url + "/api/developer/oauth/token",   
         )
         self.Login.content.events["onAuth"] = [
             self.onRefreshViews[0],
@@ -183,13 +267,13 @@ class UIDLConstructor():
             { "type": "stateChange", "modifies": UIDLConstructor.STATE_LOADER_OPEN, "newState": False},
         ]
         
-        self.Frame = t.TeleportElement(t.TeleportContent(elementType="iframe"))
-        self.Frame.content.style = {
-            'width' : '100%',
-            'height' : '100%'
-        }
+        
+        self.Frame = t.TeleportElement(t.TeleportContent(elementType="div"))
+        self.Frame.content.style['position'] = "relative"
+        self.Frame.content.style['width'] = "calc(" + str(self.width) + " - " + str(self.drawer_width) + "px)"
+        self.Frame.content.style['height'] = "calc(" + str(self.height) + " - 130px)"
 
-        self.Frame.content.attrs["src"] = {
+        self.Frame.content.attrs["dangerouslySetInnerHTML"] = {
             "type": "dynamic",
             "content": {
                 "referenceType": "state",
@@ -197,18 +281,25 @@ class UIDLConstructor():
             }    
         }
         
-        self.DetailsPanel = t.TeleportConditional(self.Frame)
+        DetailsPanel2 = t.TeleportConditional(self.Frame)
+        DetailsPanel2.reference = {"type": "static","content":'self.state.open_params'}
+        DetailsPanel2.value = False
+        DetailsPanel2.conditions =[{"operation" : "=="}]
+        
+        self.DetailsPanel = t.TeleportConditional(DetailsPanel2)
         self.DetailsPanel.reference = {"type": "static","content":'self.state.open_details'}
         self.DetailsPanel.value = True
         self.DetailsPanel.conditions =[{"operation" : "=="}]
+
+        
         self.buildBasePlot();
 
         
     def buildBasePlot(self):
         BasePlot = PlotlyBuilder.BasePlot(self.Project, self.Component)
         BasePlot.content.style['position'] = "relative"
-        BasePlot.content.style['width'] = "calc(100%)"
-        BasePlot.content.style['height'] = "calc(100vh - 130px)"
+        BasePlot.content.style['width'] = "calc(" + str(self.width) + " - " + str(self.drawer_width) + "px)"
+        BasePlot.content.style['height'] = "calc(" + str(self.height) + " - 130px)"
         
         CBasePlot2 = t.TeleportConditional(BasePlot)
         CBasePlot2.reference = {"type": "static","content":'self.state.open_details'}
@@ -239,7 +330,12 @@ class UIDLConstructor():
             if "shapes" in output:
                 for k in output["shapes"].keys():
                     outputs[k] = k
-        return list(outputs.keys())
+                    
+        out = set()
+        for k in list(outputs.keys()):
+            for kk in k.split(","):
+                out.add(kk)
+        return list(out)
     
     def getType(self, v):   
         typev = v.get("type", "")
@@ -271,22 +367,26 @@ class UIDLConstructor():
     
     
     def buildParametersPanel(self):
-        AppSettingsComponent = Settings(
-            self.Project,
-            self.Component,
-            layout = self.inputs_layout,
-            params = self.params,
-            url=self.url_sim,
-            toolname=self.TOOLNAME,
-            revision=self.REVISION,
-            outputs=self.getNeededOutputs(),
-            runSimulation="simtool")
 
         parameters = {}
         for k, v in self.schema['inputs'].items():
             if isinstance(k, str) == False or k.isnumeric():
                 k = "_" + k
             parameters[k] = self.getValue(v)
+        AppSettingsComponent = Settings(
+            self.Project,
+            self.Component,
+            layout = self.inputs_layout,
+            params = self.params,
+            parameters = parameters,
+            url=self.url + "/api/results/simtools",
+            toolname=self.TOOLNAME,
+            revision=self.REVISION,
+            outputs=self.getNeededOutputs(),
+            runSimulation="simtool")
+        for k, v in self.schema['inputs'].items():
+            if isinstance(k, str) == False or k.isnumeric():
+                k = "_" + k
             AppSettingsComponent.addStateVariable(
                 k, {"type": v, "defaultValue": self.getValue(v)}
             )
@@ -441,16 +541,18 @@ class UIDLConstructor():
                 "type": "object",
                 "defaultValue": {}
             })
-
-        RESULTS["details"] = {
-            'title': 'Simulation Details',
-            'action': [{
-                "type": "stateChange",
-                "modifies": "open_details",
-                "newState": True,
-                "callbacks": self.onSquidDetail
-            }]
-        }
+            
+        if self.details:
+            RESULTS["details"] = {
+                'title': 'Simulation Details',
+                'action': [{
+                    "type": "stateChange",
+                    "modifies": "open_details",
+                    "newState": True,
+                    "callbacks": self.onSquidDetail
+                }]
+            }
+            
         RESULTS["settings"] = {
             'title':'Settings',
             'action': [
@@ -530,10 +632,8 @@ class UIDLConstructor():
         ToggleButtonGroup.content.attrs["orientation"] = "vertical"
         ToggleButtonGroup.content.attrs["exclusive"] = True
 
-        LAppBar = t.TeleportElement(MaterialContent(elementType="AppBar"))
-        LAppBar.content.attrs["position"] = "fixed"
-        LAppBar.content.attrs["color"] = "transparent"
-        LAppBar.content.style = {'top': 'auto', 'bottom': '0px','width': 'inherit', 'position': 'fixed', 'left':'0px'}
+        LAppBar = t.TeleportElement(MaterialContent(elementType="Paper"))
+        LAppBar.content.style = {'padding':'10px', 'backgroundColor' : '#DDD'}
 
         LAppBar.addContent(ToggleButtonGroup)
         return LAppBar
@@ -542,12 +642,12 @@ class UIDLConstructor():
         Gridv2 = t.TeleportElement(MaterialContent(elementType="Grid"))
         Gridv2.content.attrs["container"] = True
         Gridv2.content.attrs["direction"] = "column"
-        Gridv2.addContent(self.DetailsPanel)
         Gridv2.addContent(self.buildParametersPanel())
+        Gridv2.addContent(self.DetailsPanel)
         Gridv2.addContent(self.CBasePlot)  
-        Gridv2.content.style['width'] = "calc(100% - 200px)"
+        Gridv2.content.style['width'] = "calc(" + str(self.width) + " - " + str(self.drawer_width) + "px)"
         Gridv2.content.style['position'] = "relative"
-        Gridv2.content.style['height'] = "calc(-64px + 100vh)"
+        Gridv2.content.style['height'] = "calc(-64px + " + str(self.height) + ")"
         Gridv2.content.style['overflow'] = "auto"
 
         Drawer = t.TeleportElement(MaterialContent(elementType="Paper"))
@@ -555,8 +655,8 @@ class UIDLConstructor():
         Drawer.addContent(self.buildLowerBar())
 
         Drawer.content.style['position'] = "relative"
-        Drawer.content.style['width'] = "200px"
-        Drawer.content.style['height'] = "calc(100vh - 180px)"
+        Drawer.content.style['width'] = "" + str(self.drawer_width) + "px"
+        Drawer.content.style['height'] = "calc(" + str(self.height) + " - 70px)"
         Drawer.content.style['backgroundColor'] = "#EEE"
         Drawer.content.style['overflow'] = "auto"
 
@@ -580,34 +680,42 @@ class UIDLConstructor():
         return ThemeProvider
         
     def assemble(self, **kwargs):
+        if kwargs.get("uidl_local",False):
+            if kwargs.get("jupyter_notebook_url",None) is not None:
+                bp = os.readlink('/proc/%s/cwd' % os.environ['JPY_PARENT_PID'])
+                ap = os.path.abspath(".")
+                if ap.startswith(bp):
+                    link = "/".join(kwargs.get("jupyter_notebook_url",None).split("/", 8)[:7])
+                    link += "/uidl/UIDL.HTML/local"
+                    self.url = link
+                else:
+                    print(" Dont have access to the file")
         self.start();
         self.Component.addNode(self.buildThemeProvider())
-        if (kwargs.get("jupyter_notebook_url",None) is not None):
-            self.Project.buildReact(
-                self.MYTOOLNAME, 
-                copy_libraries=kwargs.get("copy_libraries",False), 
-                run_uidl="local", 
-                jupyter_notebook_url = kwargs.get("jupyter_notebook_url","")
-            )
+        if (kwargs.get("widget",False)):
+            self.Project.root.node.content.style = "${'width':'" + str(self.width)+ "','height':'" + str(self.height)+ "'}"
+            ComponentWidget = buildWidget(
+                self.Project, 
+                jupyter_axios=kwargs.get("jupyter_axios",False),
+                debugger=kwargs.get("debugger",False), 
+                verbose=kwargs.get("verbose",False)
+            );
+            return ComponentWidget()
         else:
-            self.Project.buildReact(
-                self.MYTOOLNAME, 
-                copy_libraries=kwargs.get("copy_libraries",False)
-            )
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
-            
+            if (kwargs.get("jupyter_notebook_url",None) is not None):
+                self.Project.buildReact(
+                    self.MYTOOLNAME, 
+                    copy_libraries=kwargs.get("copy_libraries",False), 
+                    run_uidl="local", 
+                    jupyter_notebook_url = kwargs.get("jupyter_notebook_url","")
+                )
+            else:
+                self.Project.buildReact(
+                    self.MYTOOLNAME, 
+                    copy_libraries=kwargs.get("copy_libraries",False)
+                )
+        
+   
             
 class WidgetConstructor(VBox):
     def __init__(self, layx=None, **kwargs):
@@ -634,7 +742,7 @@ class WidgetConstructor(VBox):
             elif item == "layout":
                 self._layout = self.buildLayout(value)  
             else:
-               pass;#warnings.warn(item + " is ignored") 
+                warnings.warn(item + " is ignored") 
         VBox.__init__(self, **kwargs);
         
     def defaultRunSimTool (widget, *kargs):
@@ -711,7 +819,7 @@ class WidgetConstructor(VBox):
                             elif value2 == "input.List":
                                 type_ = "ListSheet"
                                 module_ = "sim2lbuilder"
-                            elif value2 == "Array":
+                            elif value2 == "input.Array":
                                 type_ = "ListSheet"
                                 module_ = "sim2lbuilder"
                             elif value2 == "input.Dict":
@@ -719,7 +827,7 @@ class WidgetConstructor(VBox):
                                 module_ = "sim2lbuilder"
                             elif value2 == "input.Choice":
                                 type_ = "Dropdown"
-                            elif ivalue2 == "input.Image":
+                            elif value2 == "input.Image":
                                 type_ = "ImageUpload"
                                 module_ = "sim2lbuilder"
                             else:
@@ -982,7 +1090,7 @@ class DictSheet(HBox):
     description = Unicode("").tag(sync=True)
     def __init__(self, **kwargs):
         self.debug = Output()
-        self._table = widgets.Textarea(
+        self._table = Textarea(
             value=json.dumps(kwargs.get("value", [])),
             placeholder='AddList',
             disabled=False,

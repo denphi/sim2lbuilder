@@ -19,7 +19,7 @@ def InputDict():
     }
     string.content.style = {"margin": "10px 0px 10px 0px"}
     string.content.attrs[
-        "defaultValue"
+        "dummy"
     ] = "$self.props.onDefault(self, self.props.value)"
     string.content.attrs["value"] = {
         "type": "dynamic",
@@ -124,7 +124,7 @@ def InputList():
     }
     string.content.style = {"margin": "10px 0px 10px 0px"}
     string.content.attrs[
-        "defaultValue"
+        "dummy"
     ] = "$self.props.onDefault(self, self.props.value)"
     string.content.attrs["value"] = {
         "type": "dynamic",
@@ -229,7 +229,7 @@ def InputNumber():
     }
     string.content.style = {"margin": "10px 0px 10px 0px"}
     string.content.attrs[
-        "defaultValue"
+        "dummy"
     ] = "$self.props.onDefault(self, self.props.value)"
     string.content.attrs["value"] = {
         "type": "dynamic",
@@ -350,7 +350,7 @@ def InputInteger():
     }
     string.content.style = {"margin": "10px 0px 10px 0px"}
     string.content.attrs[
-        "defaultValue"
+        "dummy"
     ] = "$self.props.onDefault(self, self.props.value)"
     string.content.attrs["value"] = {
         "type": "dynamic",
@@ -476,7 +476,7 @@ def InputChoice():
     string.content.attrs["fullWidth"] = True
     string.content.style = {"margin": "10px 0px 10px 0px"}
     string.content.attrs[
-        "defaultValue"
+        "dummy"
     ] = "$self.props.onDefault(self, self.props.value)"
     string.content.attrs["value"] = {
         "type": "dynamic",
@@ -573,7 +573,7 @@ def InputText():
     }
     string.content.style = {"margin": "10px 0px 10px 0px"}
     string.content.attrs[
-        "defaultValue"
+        "dummy"
     ] = "$self.props.onDefault(self, self.props.value)"
     string.content.attrs["value"] = {
         "type": "dynamic",
@@ -664,7 +664,7 @@ def InputBoolean():
     string.content.attrs["fullWidth"] = True
 
     string.content.attrs[
-        "defaultValue"
+        "dummy"
     ] = "$self.props.onDefault(self, self.props.value)"
     string.content.attrs["checked"] = {
         "type": "dynamic",

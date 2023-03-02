@@ -35,8 +35,8 @@ def loadPlotly(tp, tc, *args, **kwargs):
     js += "      if (sseq.length>1){" + eol
     js += "        let merged = {};" + eol
     js += "        for (let seqi=0;seqi<sseq.length;seqi++ ){" + eol
-    js += "          if (sseq[i] in jsonOutput){" + eol
-    js += "            merged[sseq[i]] = jsonOutput[sseq[i]]" + eol
+    js += "          if (sseq[seqi] in jsonOutput){" + eol
+    js += "            merged[sseq[seqi]] = jsonOutput[sseq[seqi]]" + eol
     js += "          }" + eol
     js += "        }" + eol
     js += "        jsonOutput[sequence] = merged;" + eol
@@ -169,6 +169,280 @@ def loadPlotly(tp, tc, *args, **kwargs):
       "args": ['self', '[]']
     }
 
+def loadValuePlotly(tp, tc, *args, **kwargs):   
+    eol = "\n";
+    cache_store = kwargs.get("cache_store", "CacheStore");
+    cache_storage = kwargs.get("cache_storage", "cacheFactory('"+cache_store+"', 'INDEXEDDB')")
+    t.NanohubUtils.storageFactory(tp, store_name=cache_store, storage_name=cache_storage)        
+
+    js = ""
+    js += "async (component, seq, layout, shapes={}) => {" + eol
+    js += "  var olist_json = await " + cache_store + ".getItem('cache_list');" + eol
+    js += "  if (!olist_json || olist_json == '')" + eol
+    js += "    olist_json = '{}';" + eol
+    js += "  let inputs = JSON.parse(olist_json);" + eol
+    js += "  var cacheList = component.state.active_cache;" + eol
+    js += "  let cvalues = {};" + eol
+    js += "  let cdata = {};" + eol
+    js += "  let ccolor = {};" + eol
+    js += "  let copacity = {};" + eol
+    js += "  let plt;" + eol 
+    js += "  for (const hash_ind in cacheList) {" + eol
+    js += "    let hash_key = cacheList[hash_ind];" + eol
+    js += "    var output_json = await " + cache_store + ".getItem(hash_key);" + eol
+    js += "    if (!output_json || output_json == '')" + eol
+    js += "      return;" + eol
+    js += "    var jsonOutput = JSON.parse(output_json);" + eol
+    js += "    var state = component.state;" + eol
+    js += "    var lseq = Array();" + eol
+    js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
+    js += "      let datac = JSON.parse(JSON.stringify(data));" + eol
+    js += "      cdata[sequence] = {...cdata[sequence],...datac};" + eol
+    js += "      let sseq = sequence.split(',')" + eol
+    js += "      if (sseq.length>0){" + eol
+    js += "        for (let seqi=0;seqi<sseq.length;seqi++ ){" + eol
+    js += "          if (sseq[seqi] in jsonOutput){" + eol
+    js += "            let value = jsonOutput[sseq[seqi]];" + eol
+    js += "            if (!(sseq[seqi] in cvalues))" + eol
+    js += "              cvalues[sseq[seqi]] = [];" + eol
+    js += "            cvalues[sseq[seqi]].push(value);" + eol
+    js += "            ccolor[hash_key] = '#1f77b4';" + eol
+    js += "            copacity[hash_key] = 1;" + eol
+    js += "            if (component.state.lastCache != hash_key){" + eol
+    js += "              ccolor[hash_key] = 'lightgrey';" + eol
+    js += "              copacity[hash_key] = 0.5;" + eol
+    js += "            }" + eol
+    js += "          }" + eol
+    js += "        }" + eol
+    js += "      }" + eol
+    js += "    });" + eol
+    js += "  }" + eol  
+    js += "  try { " + eol
+    js += "    Object.entries(cdata).forEach(([k1,v1]) => {" + eol
+    js += "      Object.entries(v1).forEach(([k2,v2]) => {" + eol
+    js += "        if (v2.toString().startsWith('$')){" + eol
+    js += "          let label = v2.toString().replace('$', '');" + eol
+    js += "          if (label in cvalues){" + eol
+    js += "              cdata[k1][k2]= cvalues[label];" + eol    
+    js += "              if (!('marker' in cdata[k1])) " + eol
+    js += "                cdata[k1]['marker'] = {}; " + eol
+    js += "              if (!('color' in cdata[k1]['marker'])) " + eol
+    js += "                cdata[k1]['marker']['color'] = Object.values(ccolor); " + eol
+    js += "              if (!('opacity' in cdata[k1]['marker'])) " + eol
+    js += "                cdata[k1]['marker']['opacity'] = Object.values(copacity); " + eol
+    js += "          }" + eol
+    js += "        }" + eol
+    js += "      });" + eol
+    js += "    });" + eol
+    js += "  } catch {}" + eol
+    js += "  component.setState({" + eol
+    js += "    'data': Object.values(cdata)," + eol
+    js += "    'layout': layout," + eol
+    js += "    'config': {" + eol
+    js += "      'displayModeBar': true, " + eol
+    js += "      'responsive': true, " + eol
+    js += "      'displaylogo': false, " + eol
+    js += "      'editable': false, " + eol
+    js += "    }" + eol    
+    js += "  });" + eol
+    js += "  window.dispatchEvent(new Event('relayout'));" + eol #trying to trigger windows rescale does not work on IE
+    js += "}" + eol
+    tc.addPropVariable("loadValuePlotly", {"type":"func", "defaultValue": js})    
+
+    return {
+      "type": "propCall2",
+      "calls": "loadValuePlotly",
+      "args": ['self', '[]']
+    }
+
+def loadHTML(tp, tc, *args, **kwargs):
+    eol = "\n";
+    cache_store = kwargs.get("cache_store", "CacheStore");
+    cache_storage = kwargs.get("cache_storage", "cacheFactory('"+cache_store+"', 'INDEXEDDB')")
+    t.NanohubUtils.storageFactory(tp, store_name=cache_store, storage_name=cache_storage)        
+
+    js = ""
+    js += "async (component, seq) => {" + eol
+    js += "  var olist_json = await " + cache_store + ".getItem('cache_list');" + eol
+    js += "  if (!olist_json || olist_json == '')" + eol
+    js += "    olist_json = '{}';" + eol
+    js += "  let inputs = JSON.parse(olist_json);" + eol
+    js += "  var cacheList = component.state.active_cache;" + eol
+    js += "  let cdata = document.createElement('div');" + eol
+    js += "  let plt;" + eol 
+    js += "  function appendDom(jsonData, data) {" + eol 
+    js += "    let divParent;" + eol 
+    js += "    if ('type' in jsonData){" + eol 
+    js += "      divParent  = document.createElement(jsonData.type);" + eol 
+    js += "      Object.entries(jsonData).forEach(([attr,value]) => {" + eol
+    js += "        try {" + eol 
+    js += "          if (attr == 'type') {" + eol
+    js += "          } else if (attr == 'textContent') {" + eol 
+    js += "              if (value == '$value')" + eol 
+    js += "                divParent.textContent = data;" + eol 
+    js += "              else" + eol 
+    js += "                divParent.textContent = value;" + eol 
+    js += "          } else if (attr == 'children') {" + eol 
+    js += "            for (var i = 0; i <value.length; i++) {" + eol 
+    js += "              divParent.append(appendDom(value[0], data));" + eol 
+    js += "            }" + eol 
+    js += "          } else {" + eol 
+    js += "            if (value == '$value')" + eol 
+    js += "              divParent.setAttribute(attr,data);" + eol 
+    js += "            else" + eol 
+    js += "              divParent.setAttribute(attr,value);" + eol 
+    js += "          } " + eol
+    js += "        } catch { } " + eol
+    js += "      });" + eol 
+    js += "    } else{ " + eol 
+    js += "      divParent = document.createElement('div');" + eol 
+    js += "    }" + eol 
+    js += "    return divParent" + eol 
+    js += "  }" + eol 
+    js += "  for (const hash_ind in cacheList) {" + eol
+    js += "    let hash_key = cacheList[hash_ind];" + eol
+    js += "    var output_json = await " + cache_store + ".getItem(hash_key);" + eol
+    js += "    if (!output_json || output_json == '')" + eol
+    js += "      return;" + eol
+    js += "    var jsonOutput = JSON.parse(output_json);" + eol
+    js += "    var state = component.state;" + eol
+    js += "    var lseq = Array();" + eol
+    js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
+    js += "      let datac = JSON.parse(JSON.stringify(data));" + eol
+    js += "      if (sequence in jsonOutput){" + eol
+    js += "        let dom = appendDom(datac, jsonOutput[sequence]);" + eol
+    js += "        if (component.state.lastCache != hash_key)" + eol
+    js += "          dom.setAttribute('style', 'border: 10px solid lightgrey');" + eol
+    js += "        else" + eol
+    js += "          dom.setAttribute('style', 'border: 10px solid #1f77b4');" + eol
+    js += "        cdata.append(dom)" + eol
+    js += "      }" + eol
+    js += "    });" + eol
+    js += "  }" + eol  
+    js += "  try { " + eol
+    js += "  } catch {}" + eol
+    js += "  component.setState({" + eol
+    js += "    'src_detail': { '__html': cdata.innerHTML }," + eol
+    js += "    'data': []," + eol
+    js += "    'layout': {}," + eol
+    js += "    'config': {" + eol
+    js += "      'displayModeBar': true, " + eol
+    js += "      'responsive': true, " + eol
+    js += "      'displaylogo': false, " + eol
+    js += "      'editable': false, " + eol
+    js += "    }" + eol    
+    js += "  });" + eol
+    js += "  window.dispatchEvent(new Event('relayout'));" + eol #trying to trigger windows rescale does not work on IE
+    js += "}" + eol
+    tc.addPropVariable("loadHTML", {"type":"func", "defaultValue": js})    
+
+    return {
+      "type": "propCall2",
+      "calls": "loadHTML",
+      "args": ['self', '[]']
+    }
+
+
+def loadTablePlotly(tp, tc, *args, **kwargs):   
+    eol = "\n";
+    cache_store = kwargs.get("cache_store", "CacheStore");
+    cache_storage = kwargs.get("cache_storage", "cacheFactory('"+cache_store+"', 'INDEXEDDB')")
+    t.NanohubUtils.storageFactory(tp, store_name=cache_store, storage_name=cache_storage)        
+
+    js = ""
+    js += "async (component, seq, layout, shapes={}) => {" + eol
+    js += "  var olist_json = await " + cache_store + ".getItem('cache_list');" + eol
+    js += "  if (!olist_json || olist_json == '')" + eol
+    js += "    olist_json = '{}';" + eol
+    js += "  let inputs = JSON.parse(olist_json);" + eol
+    js += "  var cacheList = component.state.active_cache;" + eol
+    js += "  let ccells = {};" + eol
+    js += "  let cheader = {};" + eol
+    js += "  let cdata = {};" + eol
+    js += "  let ccolor = {};" + eol
+    js += "  let plt;" + eol 
+    js += "  for (const hash_ind in cacheList) {" + eol
+    js += "    let hash_key = cacheList[hash_ind];" + eol
+    js += "    var output_json = await " + cache_store + ".getItem(hash_key);" + eol
+    js += "    if (!output_json || output_json == '')" + eol
+    js += "      return;" + eol
+    js += "    var jsonOutput = JSON.parse(output_json);" + eol
+    js += "    var state = component.state;" + eol
+    js += "    var lseq = Array();" + eol
+    js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
+    js += "      let datac = JSON.parse(JSON.stringify(data));" + eol
+    js += "      cdata = {...cdata,...datac};" + eol
+    js += "      if (sequence in jsonOutput){" + eol
+    js += "        let cell = '';" + eol
+    js += "        try {" + eol
+    js += "          if (datac.cells.values == '$value'){" + eol
+    js += "            cell = jsonOutput[sequence];" + eol
+    js += "          } else {" + eol
+    js += "            cell = datac.cells.values;" + eol
+    js += "          }" + eol
+    js += "        } catch {" + eol
+    js += "          cell = '';" + eol
+    js += "        } " + eol
+    js += "        if (!(sequence in ccells))" + eol
+    js += "          ccells[sequence] = [];" + eol
+    js += "        ccells[sequence].push(cell);" + eol
+    js += "        let header = '';" + eol
+    js += "        try {" + eol
+    js += "          if (datac.header.values == '$value'){" + eol
+    js += "            header = sequence;" + eol
+    js += "          } else {" + eol
+    js += "            header = datac.header.values;" + eol
+    js += "          }" + eol
+    js += "        } catch {" + eol
+    js += "          header = '';" + eol
+    js += "        } " + eol
+    js += "        if (!(sequence in cheader))" + eol
+    js += "          cheader[sequence] = [header];" + eol
+    js += "        if (component.state.lastCache != hash_key) {" + eol
+    js += "          ccolor[hash_key] = 'lightgrey';" + eol
+    js += "        } else {" + eol
+    js += "          ccolor[hash_key] = '#1f77b4';" + eol
+    js += "        }" + eol
+    js += "      }" + eol
+    js += "    });" + eol
+    js += "  }" + eol  
+    js += "  try { " + eol
+    js += "    if (!('header' in cdata))" + eol
+    js += "      cdata.header = {};" + eol
+    js += "    if (!('values' in cdata.header))" + eol
+    js += "      cdata.values = [];" + eol
+    js += "    if (cdata.header.values == '$value')" + eol
+    js += "      cdata.header.values = Object.values(cheader);" + eol
+    js += "    if (!('cells' in cdata))" + eol
+    js += "      cdata.cells = {};" + eol
+    js += "    if (!('values' in cdata.cells))" + eol
+    js += "      cdata.cells.values = [];" + eol
+    js += "    if (cdata.cells.values == '$value')" + eol
+    js += "      cdata.cells.values = Object.values(ccells);" + eol
+    js += "      if (!('fill' in cdata.cells))" + eol
+    js += "        cdata.cells.fill = {};" + eol
+    js += "      cdata.cells.fill.color = [Object.values(ccolor)];" + eol
+    js += "    cdata.type = 'table';" + eol
+    js += "  } catch {}" + eol
+    js += "  component.setState({" + eol
+    js += "    'data': [cdata]," + eol
+    js += "    'layout': layout," + eol
+    js += "    'config': {" + eol
+    js += "      'displayModeBar': true, " + eol
+    js += "      'responsive': true, " + eol
+    js += "      'displaylogo': false, " + eol
+    js += "      'editable': false, " + eol
+    js += "    }" + eol    
+    js += "  });" + eol
+    js += "  window.dispatchEvent(new Event('relayout'));" + eol #trying to trigger windows rescale does not work on IE
+    js += "}" + eol
+    tc.addPropVariable("loadTablePlotly", {"type":"func", "defaultValue": js})    
+
+    return {
+      "type": "propCall2",
+      "calls": "loadTablePlotly",
+      "args": ['self', '[]']
+    }
 
 def loadSequencePlotly(tp, tc, *args, **kwargs):   
     eol = "\n";
@@ -203,8 +477,8 @@ def loadSequencePlotly(tp, tc, *args, **kwargs):
     js += "      if (sseq.length>1){" + eol
     js += "        let merged = {};" + eol
     js += "        for (let seqi=0;seqi<sseq.length;seqi++ ){" + eol
-    js += "          if (sseq[i] in jsonOutput){" + eol
-    js += "            merged[sseq[i]] = jsonOutput[sseq[i]]" + eol
+    js += "          if (sseq[seqi] in jsonOutput){" + eol
+    js += "            merged[sseq[seqi]] = jsonOutput[sseq[seqi]]" + eol
     js += "          }" + eol
     js += "        }" + eol
     js += "        jsonOutput[sequence] = merged;" + eol
@@ -393,8 +667,8 @@ def loadMultiPlotly(tp, tc, *args, **kwargs):
     js += "      if (sseq.length>1){" + eol
     js += "        let merged = {};" + eol
     js += "        for (let seqi=0;seqi<sseq.length;seqi++ ){" + eol
-    js += "          if (sseq[i] in jsonOutput){" + eol
-    js += "            merged[sseq[i]] = jsonOutput[sseq[i]]" + eol
+    js += "          if (sseq[seqi] in jsonOutput){" + eol
+    js += "            merged[sseq[seqi]] = jsonOutput[sseq[seqi]]" + eol
     js += "          }" + eol
     js += "        }" + eol
     js += "        jsonOutput[sequence] = merged;" + eol
@@ -566,7 +840,7 @@ def refreshViews(tp, tc, *args, **kwargs):
     js += "    var olen = await " + cache_store + ".length();" + eol
     js += "    for (let ii=0; ii<olen; ii++) {" + eol
     js += "      var key = await " + cache_store + ".key(ii);" + eol
-    js += "      const regex = new RegExp(' " + regc + "([a-z0-9]{64})', 'im');" + eol
+    js += "      const regex = new RegExp('" + regc + "([a-z0-9]{64})', 'im');" + eol
     js += "      let m;" + eol
     js += "      if ((m = regex.exec(key)) !== null) {" + eol
     js += "          if (component.state.lastCache == m[1]){ " + eol
@@ -590,6 +864,14 @@ def refreshViews(tp, tc, *args, **kwargs):
     js += "        selfr.props.loadPlotly(selfr, vis['dataset'], vis['layout'], vis['shapes']);" + eol
     js += "        selfr.setState({'open_params':false});" + eol
     js += "        selfr.setState({'open_details':false});" + eol
+    js += "    } else if (vis['function'] == 'loadValuePlotly'){" + eol
+    js += "        selfr.props.loadValuePlotly(selfr, vis['dataset'], vis['layout'], vis['shapes']);" + eol
+    js += "        selfr.setState({'open_params':false});" + eol
+    js += "        selfr.setState({'open_details':false});" + eol
+    js += "    } else if (vis['function'] == 'loadTablePlotly'){" + eol
+    js += "        selfr.props.loadTablePlotly(selfr, vis['dataset'], vis['layout'], vis['shapes']);" + eol
+    js += "        selfr.setState({'open_params':false});" + eol
+    js += "        selfr.setState({'open_details':false});" + eol
     js += "    } else if (vis['function'] == 'loadSequencePlotly'){" + eol
     js += "        selfr.props.loadSequencePlotly(selfr, vis['dataset'], vis['layout'], vis['normalize'], vis['start_trace']);" + eol
     js += "        selfr.setState({'open_params':false});" + eol
@@ -598,6 +880,10 @@ def refreshViews(tp, tc, *args, **kwargs):
     js += "        selfr.props.loadMultiPlotly(selfr, vis['dataset'], vis['layout'], vis['shapes']);" + eol
     js += "        selfr.setState({'open_params':false});" + eol
     js += "        selfr.setState({'open_details':false});" + eol
+    js += "    } else if (vis['function'] == 'loadHTML'){" + eol
+    js += "        selfr.setState({'open_params':false});" + eol
+    js += "        selfr.setState({'open_details':true});" + eol
+    js += "        selfr.props.loadHTML(selfr, vis['dataset']);" + eol
     js += "    }" + eol
     js += "  }" + eol
     js += "}" + eol
@@ -628,7 +914,7 @@ def deleteHistory(tp, tc, *args, **kwargs):
     js += "  var olen = await " + cache_store + ".length();" + eol
     js += "  for (let ii=0; ii<olen; ii++) {" + eol
     js += "    var key = await " + cache_store + ".key(ii);" + eol
-    js += "    const regex = new RegExp(' " + regc + "([a-z0-9]{64})', 'im');" + eol
+    js += "    const regex = new RegExp('" + regc + "([a-z0-9]{64})', 'im');" + eol
     js += "    let m;" + eol
     js += "    if ((m = regex.exec(key)) !== null) {" + eol
     js += "        if (component.state.lastCache != m[1]){ " + eol
@@ -661,7 +947,7 @@ def cleanCache(tp, tc, *args, **kwargs):
     js += "  var listState = [];" + eol
     js += "  var activeCache = [];" + eol
     js += "  let deleted = await " + cache_store + ".clear();" + eol
-    js += "  selfr.setState({'compare':false});" + eol
+    js += "  selfr.props.onSuccess();" + eol
     js += "}" + eol
     tc.addPropVariable("cleanCache", {"type":"func", 'defaultValue' :js})   
 
@@ -895,7 +1181,7 @@ def Settings(tp, Component, *args, **kwargs):
     Gridt.content.attrs["container"] = True
     Gridt.content.attrs["direction"] = "column"
     resetv = []
-    resetv = [{ "type": "stateChange", "modifies": k,"newState": v["default_value"]}
+    resetv = [{ "type": "stateChange", "modifies": k,"newState": v}
         for k,v in parameters.items()
     ]
     resetv.append({
