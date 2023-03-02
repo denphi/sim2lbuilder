@@ -61,8 +61,16 @@ class UIDLConstructor():
         )
         self.url = kwargs.get("url", "https://nanohub.org")
         self.drawer_width = kwargs.get("drawer_width", 250) 
-        self.width = kwargs.get("width", "100%") 
-        self.height = kwargs.get("height", "100%") 
+ 
+        try :
+            self.width = str(float(kwargs.get("width", "1024"))) + "px"
+        except:
+            self.width = str(kwargs.get("width", "1024px"))
+        try :
+            self.height = str(float(kwargs.get("height", "768"))) + "px"
+        except:
+            self.height = str(kwargs.get("height", "768px"))
+            
         self.globals = t.TeleportGlobals()
         loader = ".loader:empty {";
         loader +="position: absolute;";
@@ -136,7 +144,7 @@ class UIDLConstructor():
                 }
                 out['layout'] = {'title': k}
                 outputs.append(out) 
-            elif s.get("type","None") == "output.Array":                
+            elif s.get("type","None") in ["output.Array", "output.List"]:                
                 out['function'] = 'loadPlotly'
                 out['dataset'] = {
                     k: {                        
@@ -211,6 +219,9 @@ class UIDLConstructor():
         
     def start(self):
         self.Project = t.TeleportProject(self.TOOLNAME + "-" + str(self.REVISION) )
+        self.Project.root.node.content.style['width'] = str(self.width)
+        self.Project.root.node.content.style['height'] = str(self.height)
+        self.Project.root.node.content.style['border'] = "1px solid #DDD"
         self.Project.globals = self.globals
         self.Component = self.Project.root
         self.Component.addStateVariable("open_params", {"type":"boolean", "defaultValue": False})
@@ -270,8 +281,13 @@ class UIDLConstructor():
         
         self.Frame = t.TeleportElement(t.TeleportContent(elementType="div"))
         self.Frame.content.style['position'] = "relative"
-        self.Frame.content.style['width'] = "calc(" + str(self.width) + " - " + str(self.drawer_width) + "px)"
-        self.Frame.content.style['height'] = "calc(" + str(self.height) + " - 130px)"
+        self.Frame.content.style = {
+            "position": "relative",
+            "min-height": "calc(" + str(self.height) + " - 130px)",
+            "width": "100%",
+            "flex" : "1",
+            "overflow" : "auto"
+        }
 
         self.Frame.content.attrs["dangerouslySetInnerHTML"] = {
             "type": "dynamic",
@@ -297,20 +313,13 @@ class UIDLConstructor():
         
     def buildBasePlot(self):
         BasePlot = PlotlyBuilder.BasePlot(self.Project, self.Component)
-        BasePlot.content.style['position'] = "relative"
-        BasePlot.content.style['width'] = "calc(" + str(self.width) + " - " + str(self.drawer_width) + "px)"
-        BasePlot.content.style['height'] = "calc(" + str(self.height) + " - 130px)"
+        BasePlot.content.style = {
+            "position": "relative",
+            "min-height": "calc(" + str(self.height) + " - 130px)",
+            "width": "100%",
+        }
         
-        CBasePlot2 = t.TeleportConditional(BasePlot)
-        CBasePlot2.reference = {"type": "static","content":'self.state.open_details'}
-        CBasePlot2.value = False
-        CBasePlot2.conditions =[{"operation" : "=="}]
-
-        self.CBasePlot = t.TeleportConditional(CBasePlot2)
-        self.CBasePlot.reference = {"type": "static","content":'self.state.open_params'}
-        self.CBasePlot.value = False
-        self.CBasePlot.conditions =[{"operation" : "=="}]
-
+        self.CBasePlot = BasePlot
         elem = self.Project.components["BasePlotlyComponent"].node.content
         elem.attrs["config"] = {
           "type": "dynamic",
@@ -645,20 +654,23 @@ class UIDLConstructor():
         Gridv2.addContent(self.buildParametersPanel())
         Gridv2.addContent(self.DetailsPanel)
         Gridv2.addContent(self.CBasePlot)  
-        Gridv2.content.style['width'] = "calc(" + str(self.width) + " - " + str(self.drawer_width) + "px)"
+        #Gridv2.content.style['width'] = "calc(" + str(self.width) + " - " + str(self.drawer_width) + "px)"
         Gridv2.content.style['position'] = "relative"
+        Gridv2.content.style['overflow-x'] = "hidden"
+        Gridv2.content.style['overflow-y'] = "auto"
+        Gridv2.content.style['flex'] = "1"
         Gridv2.content.style['height'] = "calc(-64px + " + str(self.height) + ")"
-        Gridv2.content.style['overflow'] = "auto"
 
         Drawer = t.TeleportElement(MaterialContent(elementType="Paper"))
         Drawer.addContent(self.buildExpansionPanel())
         Drawer.addContent(self.buildLowerBar())
 
         Drawer.content.style['position'] = "relative"
-        Drawer.content.style['width'] = "" + str(self.drawer_width) + "px"
-        Drawer.content.style['height'] = "calc(" + str(self.height) + " - 70px)"
+        #Drawer.content.style['width'] = "" + str(self.drawer_width) + "px"
+        Drawer.content.style['height'] = "calc(-64px + " + str(self.height) + ")"
         Drawer.content.style['backgroundColor'] = "#EEE"
         Drawer.content.style['overflow'] = "auto"
+        Drawer.content.style['flex'] = "0 0 " + str(self.drawer_width)
 
         Gridh = t.TeleportElement(MaterialContent(elementType="Grid"))
         Gridh.content.attrs["container"] = True
@@ -693,7 +705,6 @@ class UIDLConstructor():
         self.start();
         self.Component.addNode(self.buildThemeProvider())
         if (kwargs.get("widget",False)):
-            self.Project.root.node.content.style = "${'width':'" + str(self.width)+ "','height':'" + str(self.height)+ "'}"
             ComponentWidget = buildWidget(
                 self.Project, 
                 jupyter_axios=kwargs.get("jupyter_axios",False),
@@ -1028,13 +1039,20 @@ def simtool_constructor(self, node):
         path = values[1]
     if len(values) > 2:
         action = values[2]        
+    name = tool
     stl = simtool.searchForSimTool(tool)
     if (stl['notebookPath'] == None):
         raise Exception("Simtool is not valid")
+    if (stl['published'] == False):
+        warnings.warn("sim2l is not published")
+        name = stl['notebookPath'].replace("/","%")
+        
     inputs = simtool.getSimToolInputs(stl)
     outputs = simtool.getSimToolOutputs(stl)
-    revision = stl['simToolRevision'].replace("r", "")
-    name = tool
+    if stl['simToolRevision'] is not None:
+        revision = stl['simToolRevision'].replace("r", "")
+    else:
+        revision = "0"
 
     res = {'inputs':{},'outputs':{}, 'revision':revision, 'name':name}
     for i in inputs:

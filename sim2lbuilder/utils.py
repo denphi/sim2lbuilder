@@ -861,29 +861,23 @@ def refreshViews(tp, tc, *args, **kwargs):
     js += "    let vis = selfr.state['visualization']; " + eol
     js += "    selfr.setState({'open_plot':selfr.state.visualization.id});" + eol
     js += "    if (vis['function'] == 'loadPlotly'){" + eol
-    js += "        selfr.props.loadPlotly(selfr, vis['dataset'], vis['layout'], vis['shapes']);" + eol
-    js += "        selfr.setState({'open_params':false});" + eol
-    js += "        selfr.setState({'open_details':false});" + eol
+    js += "        selfr.setState({'open_params':false,'open_details':false}, () => {" + eol
+    js += "        selfr.props.loadPlotly(selfr, vis['dataset'], vis['layout'], vis['shapes']); });" + eol
     js += "    } else if (vis['function'] == 'loadValuePlotly'){" + eol
-    js += "        selfr.props.loadValuePlotly(selfr, vis['dataset'], vis['layout'], vis['shapes']);" + eol
-    js += "        selfr.setState({'open_params':false});" + eol
-    js += "        selfr.setState({'open_details':false});" + eol
+    js += "        selfr.setState({'open_params':false,'open_details':false}, () => {" + eol
+    js += "        selfr.props.loadValuePlotly(selfr, vis['dataset'], vis['layout'], vis['shapes']);});" + eol
     js += "    } else if (vis['function'] == 'loadTablePlotly'){" + eol
-    js += "        selfr.props.loadTablePlotly(selfr, vis['dataset'], vis['layout'], vis['shapes']);" + eol
-    js += "        selfr.setState({'open_params':false});" + eol
-    js += "        selfr.setState({'open_details':false});" + eol
+    js += "        selfr.setState({'open_params':false,'open_details':false}, () => {" + eol
+    js += "        selfr.props.loadTablePlotly(selfr, vis['dataset'], vis['layout'], vis['shapes']);});" + eol
     js += "    } else if (vis['function'] == 'loadSequencePlotly'){" + eol
-    js += "        selfr.props.loadSequencePlotly(selfr, vis['dataset'], vis['layout'], vis['normalize'], vis['start_trace']);" + eol
-    js += "        selfr.setState({'open_params':false});" + eol
-    js += "        selfr.setState({'open_details':false});" + eol
+    js += "        selfr.setState({'open_params':false,'open_details':false}, () => {" + eol
+    js += "        selfr.props.loadSequencePlotly(selfr, vis['dataset'], vis['layout'], vis['normalize'], vis['start_trace']);});" + eol
     js += "    } else if (vis['function'] == 'loadMultiPlotly'){" + eol
-    js += "        selfr.props.loadMultiPlotly(selfr, vis['dataset'], vis['layout'], vis['shapes']);" + eol
-    js += "        selfr.setState({'open_params':false});" + eol
-    js += "        selfr.setState({'open_details':false});" + eol
+    js += "        selfr.setState({'open_params':false,'open_details':false}, () => {" + eol
+    js += "        selfr.props.loadMultiPlotly(selfr, vis['dataset'], vis['layout'], vis['shapes']);});" + eol
     js += "    } else if (vis['function'] == 'loadHTML'){" + eol
-    js += "        selfr.setState({'open_params':false});" + eol
-    js += "        selfr.setState({'open_details':true});" + eol
-    js += "        selfr.props.loadHTML(selfr, vis['dataset']);" + eol
+    js += "        selfr.setState({'open_params':false,'open_details':true}, () => {" + eol
+    js += "        selfr.props.loadHTML(selfr, vis['dataset']);});" + eol
     js += "    }" + eol
     js += "  }" + eol
     js += "}" + eol
