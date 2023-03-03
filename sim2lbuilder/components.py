@@ -1,9 +1,10 @@
-import nanohubuidl.teleport as t
-import nanohubuidl.material as m
+from nanohubuidl.teleport import TeleportComponent, TeleportElement, TeleportContent
+from nanohubuidl.teleport import TeleportStatic, TeleportRepeat, TeleportDynamic
+from nanohubuidl.material import MaterialContent
 
 def InputDict():
     name = "InputDict"
-    string = t.TeleportElement(m.MaterialContent(elementType="TextField"))
+    string = TeleportElement(MaterialContent(elementType="TextField"))
     string.content.attrs["variant"] = {
         "type": "dynamic",
         "content": {"referenceType": "prop", "id": "variant"},
@@ -38,7 +39,7 @@ def InputDict():
         "content": {"referenceType": "state", "id": "error"},
     }
 
-    Component = t.TeleportComponent(name, string)
+    Component = TeleportComponent(name, string)
 
     Component.addStateVariable("error", {"type": "boolean", "defaultValue": False})
     Component.addStateVariable(
@@ -108,7 +109,7 @@ def InputDict():
 
 def InputList():
     name = "InputList"
-    string = t.TeleportElement(m.MaterialContent(elementType="TextField"))
+    string = TeleportElement(MaterialContent(elementType="TextField"))
     string.content.attrs["variant"] = {
         "type": "dynamic",
         "content": {"referenceType": "prop", "id": "variant"},
@@ -144,7 +145,7 @@ def InputList():
         "content": {"referenceType": "state", "id": "error"},
     }
 
-    Component = t.TeleportComponent(name, string)
+    Component = TeleportComponent(name, string)
 
     Component.addStateVariable("error", {"type": "boolean", "defaultValue": False})
     Component.addStateVariable(
@@ -213,7 +214,7 @@ def InputList():
 
 def InputNumber():
     name = "InputNumber"
-    string = t.TeleportElement(m.MaterialContent(elementType="TextField"))
+    string = TeleportElement(MaterialContent(elementType="TextField"))
     string.content.attrs["variant"] = {
         "type": "dynamic",
         "content": {"referenceType": "prop", "id": "variant"},
@@ -253,7 +254,7 @@ def InputNumber():
         "content": {"referenceType": "state", "id": "error"},
     }
 
-    Component = t.TeleportComponent(name, string)
+    Component = TeleportComponent(name, string)
 
     Component.addStateVariable("error", {"type": "boolean", "defaultValue": False})
     Component.addStateVariable(
@@ -333,7 +334,7 @@ def InputNumber():
 
 def InputInteger():
     name = "InputInteger"
-    string = t.TeleportElement(m.MaterialContent(elementType="TextField"))
+    string = TeleportElement(MaterialContent(elementType="TextField"))
     string.content.attrs["variant"] = {
         "type": "dynamic",
         "content": {"referenceType": "prop", "id": "variant"},
@@ -374,7 +375,7 @@ def InputInteger():
         "content": {"referenceType": "state", "id": "error"},
     }
 
-    Component = t.TeleportComponent(name, string)
+    Component = TeleportComponent(name, string)
 
     Component.addStateVariable("error", {"type": "boolean", "defaultValue": False})
     Component.addStateVariable(
@@ -454,24 +455,24 @@ def InputInteger():
 
 def InputChoice():
     name = "InputChoice"
-    form = t.TeleportElement(m.MaterialContent(elementType="FormControl"))
+    form = TeleportElement(MaterialContent(elementType="FormControl"))
     form.content.attrs["fullWidth"] = True
     form.content.attrs["variant"] = {
         "type": "dynamic",
         "content": {"referenceType": "prop", "id": "variant"},
     }
-    label = t.TeleportElement(m.MaterialContent(elementType="InputLabel"))
+    label = TeleportElement(MaterialContent(elementType="InputLabel"))
     label.content.attrs["htmlFor"] = "component-filled"
     label.content.attrs["shrink"] = True
     label.content.style = {"background": "white", "padding": "0px 2px", "left": "-5px"}
-    labeltext = t.TeleportDynamic(content={"referenceType": "prop", "id": "label"})
+    labeltext = TeleportDynamic(content={"referenceType": "prop", "id": "label"})
 
-    helpertext = t.TeleportElement(m.MaterialContent(elementType="FormHelperText"))
+    helpertext = TeleportElement(MaterialContent(elementType="FormHelperText"))
     helpertext.addContent(
-        t.TeleportDynamic(content={"referenceType": "prop", "id": "description"})
+        TeleportDynamic(content={"referenceType": "prop", "id": "description"})
     )
     label.addContent(labeltext)
-    string = t.TeleportElement(m.MaterialContent(elementType="Select"))
+    string = TeleportElement(MaterialContent(elementType="Select"))
     string.content.attrs["select"] = True
     string.content.attrs["fullWidth"] = True
     string.content.style = {"margin": "10px 0px 10px 0px"}
@@ -490,7 +491,7 @@ def InputChoice():
     string.content.events["change"].append(
         {"type": "propCall2", "calls": "onValidate", "args": ["self", "e.target.value"]}
     )
-    option = t.TeleportElement(m.MaterialContent(elementType="MenuItem"))
+    option = TeleportElement(MaterialContent(elementType="MenuItem"))
     option.content.attrs["key"] = {
         "type": "dynamic",
         "content": {"referenceType": "local", "id": "local"},
@@ -500,8 +501,8 @@ def InputChoice():
         "content": {"referenceType": "local", "id": "local"},
     }
     option.content.style = {"width": "100%"}
-    option.addContent(t.TeleportStatic(content="$local"))
-    options = t.TeleportRepeat(option)
+    option.addContent(TeleportStatic(content="$local"))
+    options = TeleportRepeat(option)
     options.iteratorName = "local"
     options.dataSource = {
         "type": "dynamic",
@@ -512,7 +513,7 @@ def InputChoice():
     form.addContent(string)
     form.addContent(helpertext)
     
-    Component = t.TeleportComponent(name, form)
+    Component = TeleportComponent(name, form)
     Component.addStateVariable(
         "value", {"type": "string", "defaultValue": "$self.props.value"}
     )
@@ -553,7 +554,7 @@ def InputChoice():
 
 def InputText():
     name = "InputText"
-    string = t.TeleportElement(m.MaterialContent(elementType="TextField"))
+    string = TeleportElement(MaterialContent(elementType="TextField"))
     string.content.attrs["variant"] = {
         "type": "dynamic",
         "content": {"referenceType": "prop", "id": "variant"},
@@ -587,7 +588,7 @@ def InputText():
     string.content.events["change"].append(
         {"type": "propCall2", "calls": "onValidate", "args": ["self", "e.target.value"]}
     )
-    Component = t.TeleportComponent(name, string)
+    Component = TeleportComponent(name, string)
     Component.addStateVariable(
         "value", {"type": "string", "defaultValue": "$self.props.value"}
     )
@@ -630,7 +631,7 @@ def InputText():
 
 def InputBoolean():
     name = "InputBoolean"
-    form = t.TeleportElement(m.MaterialContent(elementType="FormControl"))
+    form = TeleportElement(MaterialContent(elementType="FormControl"))
     form.content.attrs["fullWidth"] = True
     form.content.attrs["variant"] = {
         "type": "dynamic",
@@ -642,7 +643,7 @@ def InputBoolean():
         "flexDirection": "row",
         "width": "100%",
     }
-    label = t.TeleportElement(m.MaterialContent(elementType="InputLabel"))
+    label = TeleportElement(MaterialContent(elementType="InputLabel"))
     label.content.attrs["htmlFor"] = "component-filled"
     label.content.attrs["shrink"] = True
     label.content.style = {
@@ -651,15 +652,15 @@ def InputBoolean():
         "left": "-5px",
         "top": "-5px",
     }
-    labeltext = t.TeleportDynamic(content={"referenceType": "prop", "id": "label"})
+    labeltext = TeleportDynamic(content={"referenceType": "prop", "id": "label"})
 
-    helpertext = t.TeleportElement(m.MaterialContent(elementType="FormHelperText"))
+    helpertext = TeleportElement(MaterialContent(elementType="FormHelperText"))
     helpertext.addContent(
-        t.TeleportDynamic(content={"referenceType": "prop", "id": "description"})
+        TeleportDynamic(content={"referenceType": "prop", "id": "description"})
     )
     label.addContent(labeltext)
 
-    string = t.TeleportElement(m.MaterialContent(elementType="Switch"))
+    string = TeleportElement(MaterialContent(elementType="Switch"))
 
     string.content.attrs["fullWidth"] = True
 
@@ -682,7 +683,7 @@ def InputBoolean():
     form.addContent(label)
     form.addContent(string)
     form.addContent(helpertext)
-    Component = t.TeleportComponent(name, form)
+    Component = TeleportComponent(name, form)
 
     Component.addStateVariable(
         "value", {"type": "string", "defaultValue": "$self.props.value"}
@@ -724,10 +725,10 @@ def InputBoolean():
 def InputFile():
     name = "InputFile"
     
-    container = t.TeleportElement(m.MaterialContent(elementType="FormControl"))
+    container = TeleportElement(MaterialContent(elementType="FormControl"))
     container.content.attrs["fullWidth"] = True
 
-    form = t.TeleportElement(m.MaterialContent(elementType="FormControl"))
+    form = TeleportElement(MaterialContent(elementType="FormControl"))
     form.content.attrs["fullWidth"] = True
     form.content.attrs["variant"] = {
         "type": "dynamic",
@@ -740,23 +741,23 @@ def InputFile():
         "width": "100%",
         "padding" : "5px"
     }
-    label = t.TeleportElement(m.MaterialContent(elementType="InputLabel"))
+    label = TeleportElement(MaterialContent(elementType="InputLabel"))
     label.content.attrs["htmlFor"] = "component-filled"
     label.content.attrs["shrink"] = True
     label.content.style = {"background": "white", "padding": "0px 2px", "left": "-5px"}
-    labeltext = t.TeleportDynamic(content={"referenceType": "prop", "id": "label"})
+    labeltext = TeleportDynamic(content={"referenceType": "prop", "id": "label"})
 
-    helpertext = t.TeleportElement(m.MaterialContent(elementType="FormHelperText"))
+    helpertext = TeleportElement(MaterialContent(elementType="FormHelperText"))
     helpertext.addContent(
-        t.TeleportDynamic(content={"referenceType": "prop", "id": "description"})
+        TeleportDynamic(content={"referenceType": "prop", "id": "description"})
     )
     helpertext.content.style = {
         "marginLeft" : "14px"
     }
     label.addContent(labeltext)
     
-    string = t.TeleportElement(m.MaterialContent(elementType="Button"))
-    inputs = t.TeleportElement(t.TeleportContent(elementType="input"))
+    string = TeleportElement(MaterialContent(elementType="Button"))
+    inputs = TeleportElement(TeleportContent(elementType="input"))
     inputs.content.attrs["type"] = "file"
     inputs.content.attrs["accept"] = {
         "type": "dynamic",
@@ -764,14 +765,14 @@ def InputFile():
     }
     inputs.content.attrs["hidden"] = True
     inputs.content.style = {'display': 'none'}
-    label1 = t.TeleportStatic(content="Upload File [")
-    label2 = t.TeleportDynamic(content={
+    label1 = TeleportStatic(content="Upload File [")
+    label2 = TeleportDynamic(content={
         "referenceType": "state",
         "id": "filename"
     })
-    label3 = t.TeleportStatic(content="]")
-    icon = t.TeleportElement(m.MaterialContent(elementType="Icon"))
-    icontext = t.TeleportStatic(content="file_upload")
+    label3 = TeleportStatic(content="]")
+    icon = TeleportElement(MaterialContent(elementType="Icon"))
+    icontext = TeleportStatic(content="file_upload")
     string.content.attrs["component"] = "label"
   
     string.content.attrs["fullWidth"] = True
@@ -792,7 +793,7 @@ def InputFile():
     form.addContent(string)
     container.addContent(form)
     container.addContent(helpertext)
-    Component = t.TeleportComponent(name, container)
+    Component = TeleportComponent(name, container)
     
     Component.addStateVariable("filename", {
         "type": "string",
@@ -844,7 +845,6 @@ def InputFile():
                   return;
                 }
                 const { result } = evt.target;
-                console.log(result);
                 var binary = '';
                 var bytes = new Uint8Array( result );
                 var len = bytes.byteLength;
@@ -864,3 +864,188 @@ def InputFile():
     )
 
     return Component
+
+
+
+def Loader(Component, *args, **kwargs):
+    Component.addStateVariable(
+        kwargs.get("loader_status", "loader_status"),
+        {"type": "string", "defaultValue": ""},
+    )
+    Component.addStateVariable(
+        kwargs.get("loader_open", "loader_open"),
+        {"type": "boolean", "defaultValue": kwargs.get("is_open", True)},
+    )
+
+    Loader = TeleportElement(MaterialContent(elementType="Dialog"))
+    Loader.content.attrs["open"] = {
+        "type": "dynamic",
+        "content": {
+            "referenceType": "state",
+            "id": kwargs.get("open", "loader_open"),
+        },
+    }
+    #Loader.content.attrs["disableBackdropClick"] = True
+    Loader.content.attrs["disableEscapeKeyDown"] = True
+    Loader.content.attrs["fullWidth"] = True
+    Loader.content.attrs["maxWidth"] = "xs"
+    loadercnt = TeleportElement(MaterialContent(elementType="DialogContent"))
+    loadercnt.content.style = {"textAlign": "center", "overflow": "hidden"}
+
+    LinearProgress = TeleportElement(MaterialContent(elementType="LinearProgress"))
+    LinearProgress.content.attrs["color"] = "secondary"
+
+    loadertext = TeleportElement(MaterialContent(elementType="DialogTitle"))
+    loadertext.addContent(
+        TeleportDynamic(
+            content={
+                "referenceType": "state",
+                "id": kwargs.get("open", "loader_status"),
+            }
+        )
+    )
+    loadertext.content.style = {"textAlign": "center"}
+
+    # loadercnt.addContent(loadercir)
+    loadercnt.addContent(LinearProgress)
+    Loader.addContent(loadercnt)
+    Loader.addContent(loadertext)
+
+    return Loader
+
+def Error(Component, *args, **kwargs):
+    Component.addStateVariable(
+        kwargs.get("error_status", "error_status"),
+        {"type": "string", "defaultValue": ""},
+    )
+    Component.addStateVariable(
+        kwargs.get("error_open", "error_open"),
+        {"type": "boolean", "defaultValue": False},
+    )
+    Error = TeleportElement(MaterialContent(elementType="Dialog"))
+    Error.content.attrs["open"] = {
+        "type": "dynamic",
+        "content": {
+            "referenceType": "state",
+            "id": kwargs.get("error_open", "error_open"),
+        },
+    }
+    Error.content.attrs["fullWidth"] = True
+    Error.content.attrs["maxWidth"] = "xs"
+    DialogContent = TeleportElement(MaterialContent(elementType="DialogContent"))
+    DialogContent.content.style = {"textAlign": "center", "overflow": "hidden"}
+
+    Typography = TeleportElement(MaterialContent(elementType="Typography"))
+    Typography.content.attrs["variant"] = "h6"
+    TypographyText = TeleportStatic(content=kwargs.get("title", "Error Message"))
+    Typography.addContent(TypographyText)
+
+    Icon0 = TeleportElement(MaterialContent(elementType="Icon"))
+    Icon0.content.style = {"position": "absolute", "top": "10px", "left": "10px"}
+    IconText0 = TeleportStatic(content="error")
+    Icon0.addContent(IconText0)
+
+    IconButton = TeleportElement(MaterialContent(elementType="IconButton"))
+    IconButton.content.style = {
+        "position": "absolute",
+        "top": "10px",
+        "right": "10px",
+    }
+
+    Icon = TeleportElement(MaterialContent(elementType="Icon"))
+    IconText = TeleportStatic(content="close")
+    Icon.addContent(IconText)
+    IconButton.addContent(Icon)
+    IconButton.content.events["click"] = [
+        {
+            "type": "stateChange",
+            "modifies": kwargs.get("error_open", "error_open"),
+            "newState": False,
+        }
+    ]
+
+    DialogTitle = TeleportElement(MaterialContent(elementType="DialogTitle"))
+    DialogTitle.content.attrs["disableTypography"] = True
+    DialogTitle.content.style = {
+        "textAlign": "center",
+        "backgroundColor": "#d95c5c",
+    }
+    DialogTitle.addContent(IconButton)
+    DialogTitle.addContent(Typography)
+    DialogTitle.addContent(Icon0)
+
+    DialogContent.addContent(
+        TeleportDynamic(
+            content={
+                "referenceType": "state",
+                "id": kwargs.get("error_status", "error_status"),
+            }
+        )
+    )
+    DialogContent.content.style = {"textAlign": "center"}
+
+    Error.addContent(DialogTitle)
+    Error.addContent(DialogContent)
+    return Error
+
+def AppBar(*args, **kwargs):
+    AppBar = TeleportElement(MaterialContent(elementType="AppBar"))
+    AppBar.content.attrs["position"] = "static"
+    AppBar.content.attrs["color"] = kwargs.get("color", "primary")
+    AppBar.content.style = {"width": "inherit"}
+
+    ToolBar = TeleportElement(MaterialContent(elementType="Toolbar"))
+    ToolBar.content.attrs["variant"] = kwargs.get("variant", "regular")
+
+    Typography = TeleportElement(MaterialContent(elementType="Typography"))
+    Typography.content.attrs["variant"] = "h6"
+    Typography.content.style = {"flex": 1, "textAlign": "center"}
+    TypographyText = TeleportStatic(content=kwargs.get("title", ""))
+    Typography.addContent(TypographyText)
+    
+    ToolBar.addContent(Typography)
+    AppBar.addContent(ToolBar)
+    return AppBar
+
+
+def Results(*args, **kwargs):
+    results = kwargs.get("results", {})
+    onClick = kwargs.get("onClick", [])
+    onLoad = kwargs.get("onLoad", [])
+    ToggleButtonGroup = TeleportElement(
+        MaterialContent(elementType="ToggleButtonGroup")
+    )
+    ToggleButtonGroup.content.style = {
+        "width": "100%",
+        "flexDirection": "column",
+        "display": "inline-flex",
+    }
+    ToggleButtonGroup.content.attrs["orientation"] = "vertical"
+    ToggleButtonGroup.content.attrs["exclusive"] = True
+
+    ToggleButtonGroup.content.attrs["value"] = {
+        "type": "dynamic",
+        "content": {"referenceType": "state", "id": "open_plot"},
+    }
+
+    for k, v in results.items():
+        v_action = []
+        if isinstance(v["action"], dict):
+            v_action.append(v["action"])
+        elif isinstance(v["action"], list):
+            for va in v["action"]:
+                v_action.append(va)
+        v_action.append(
+            {"type": "stateChange", "modifies": "open_plot", "newState": k}
+        )
+        ToggleButton = TeleportElement(
+            MaterialContent(elementType="ToggleButton")
+        )
+        ToggleButton.content.attrs["value"] = k
+        ToggleButton.content.events["click"] = onClick + v_action + onLoad
+        Typography = TeleportElement(MaterialContent(elementType="Typography"))
+        Typography.addContent(TeleportStatic(content=v["title"]))
+        ToggleButton.addContent(Typography)
+        ToggleButtonGroup.addContent(ToggleButton)
+
+    return ToggleButtonGroup
