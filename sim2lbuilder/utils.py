@@ -567,7 +567,7 @@ def onSimulate(tp, Component, *args, **kwargs):
     js += "            } else {" + eol
     js += "              if (reload > 0){" + eol
     js += (
-        "                setTimeout(function(){self.props.onCheckSession(self, session_id, reload)},10000);"
+        "                setTimeout(function(){self.props.onCheckSession(self, session_id, reload)},"+str(delay)+");"
         + eol
     )
     js += "              }" + eol
@@ -575,12 +575,7 @@ def onSimulate(tp, Component, *args, **kwargs):
     js += "          }" + eol
     js += "        }"
     js += "      } else if (status['code']){" + eol
-    # js += "        if (status['code'] == 404){" + eol
-    # js += "          setTimeout(function(){self.props.onCheckSession(self, session_id, reload-1)},8000);" + eol
-    # js += "        }"
-    # js += "        else if (status['code'] != 200){" + eol
     js += "          self.props.onError(status['message']);" + eol
-    # js += "        }"
     js += "      }"
     js += "    }).catch(function(error){" + eol
     js += "      if (error.response){" + eol
