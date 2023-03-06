@@ -120,7 +120,6 @@ s
 
 ## Create a Sim2l GUI (Print Code) 
 
-
 ```python
 from sim2lbuilder import WidgetConstructor, GetSimtoolDefaultSchema
 from simtool import searchForSimTool, getSimToolInputs, Run
@@ -140,3 +139,28 @@ s.assemble()
 s
 
 ```
+
+## Create a Sim2l App (Javascript)
+
+```python
+from sim2lbuilder import *
+schema = GetSimtoolDefaultSchema("introtosimtools")
+s = UIDLConstructor(schema, drawer_width=350, width="100%", height="600px")
+s.assemble(
+    jupyter_notebook_url=jupyter_notebook_url,  
+)
+```
+
+## Create a Sim2l App - Jupyter widget (ipywidget)
+
+
+```python
+from sim2lbuilder import *
+schema = GetSimtoolDefaultSchema("introtosimtools")
+s = UIDLConstructor(schema, drawer_width=350, width="100%", height="600px")
+s.assemble(
+    jupyter_notebook_url=jupyter_notebook_url, 
+    uidl_local = True,
+    copy_libraries=True,
+    widget = False,    
+)
