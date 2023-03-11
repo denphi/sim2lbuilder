@@ -733,7 +733,7 @@ class UIDLConstructor():
         Drawer.content.style['height'] = "calc(-64px + " + str(self.height) + ")"
         Drawer.content.style['backgroundColor'] = "#EEE"
         Drawer.content.style['overflow'] = "auto"
-        Drawer.content.style['flex'] = "0 0 " + str(self.drawer_width)
+        Drawer.content.style['flex'] = "0 0 " + str(self.drawer_width) + "px"
 
         Gridh = TeleportElement(MaterialContent(elementType="Grid"))
         Gridh.content.attrs["container"] = True
@@ -1108,7 +1108,7 @@ def simtool_constructor(self, node):
         raise Exception("Simtool is not valid")
     if (stl['published'] == False):
         warnings.warn("sim2l is not published")
-        name = stl['notebookPath'].replace("/","%")
+        name = stl['notebookPath'].replace("/","+")
         
     inputs = simtool.getSimToolInputs(stl)
     outputs = simtool.getSimToolOutputs(stl)

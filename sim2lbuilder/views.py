@@ -1,8 +1,8 @@
 import re
-import nanohubuidl.app as a
 import json
+import nanohubuidl.app as a
 from nanohubuidl.teleport import NanohubUtils
-
+ 
 eol = "\n"
 
 def loadPlotly(*args, **kwargs):   
