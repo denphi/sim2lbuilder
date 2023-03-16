@@ -26,6 +26,10 @@ def InputDict():
         "type": "dynamic",
         "content": {"referenceType": "state", "id": "value"},
     }
+    string.content.attrs["disabled"] = {
+        "type": "dynamic",
+        "content": {"referenceType": "prop", "id": "disabled"},
+    }
     string.content.events["change"] = []
     string.content.events["change"].append(
         {"type": "propCall2", "calls": "onValidate", "args": ["self", "e.target.value"]}
@@ -53,6 +57,7 @@ def InputDict():
     Component.addPropVariable("variant", {"type": "string", "defaultValue": "outlined"})
     Component.addPropVariable("label", {"type": "string", "defaultValue": ""})
     Component.addPropVariable("description", {"type": "string", "defaultValue": ""})
+    Component.addPropVariable("disabled", {"type": "boolean", "defaultValue": False})
     Component.addPropVariable("value", {"type": "object", "defaultValue": {}})
     Component.addPropVariable("onChange", {"type": "func", "defaultValue": "(e)=>{}"})
     Component.addPropVariable(
@@ -135,7 +140,10 @@ def InputList():
     string.content.events["change"].append(
         {"type": "propCall2", "calls": "onValidate", "args": ["self", "e.target.value"]}
     )
-
+    string.content.attrs["disabled"] = {
+        "type": "dynamic",
+        "content": {"referenceType": "prop", "id": "disabled"},
+    }
     string.content.events["blur"] = []
     string.content.events["blur"].append(
         {"type": "propCall2", "calls": "onBlur", "args": ["self", "e.target.value"]}
@@ -159,6 +167,7 @@ def InputList():
     Component.addPropVariable("variant", {"type": "string", "defaultValue": "outlined"})
     Component.addPropVariable("label", {"type": "string", "defaultValue": ""})
     Component.addPropVariable("description", {"type": "string", "defaultValue": ""})
+    Component.addPropVariable("disabled", {"type": "boolean", "defaultValue": False})
     Component.addPropVariable("value", {"type": "array", "defaultValue": []})
     Component.addPropVariable("onChange", {"type": "func", "defaultValue": "(e)=>{}"})
     Component.addPropVariable(
@@ -248,7 +257,10 @@ def InputNumber():
     string.content.events["blur"].append(
         {"type": "propCall2", "calls": "onBlur", "args": ["self", "e.target.value"]}
     )
-
+    string.content.attrs["disabled"] = {
+        "type": "dynamic",
+        "content": {"referenceType": "prop", "id": "disabled"},
+    }
     string.content.attrs["error"] = {
         "type": "dynamic",
         "content": {"referenceType": "state", "id": "error"},
@@ -267,6 +279,7 @@ def InputNumber():
     Component.addPropVariable("variant", {"type": "string", "defaultValue": "outlined"})
     Component.addPropVariable("suffix", {"type": "string", "defaultValue": ""})
     Component.addPropVariable("label", {"type": "string", "defaultValue": ""})
+    Component.addPropVariable("disabled", {"type": "boolean", "defaultValue": False})
     Component.addPropVariable("description", {"type": "string", "defaultValue": ""})
     Component.addPropVariable("value", {"type": "number", "defaultValue": 0.0})
     Component.addPropVariable("min", {"type": "number", "defaultValue": None})
@@ -369,7 +382,10 @@ def InputInteger():
     string.content.events["blur"].append(
         {"type": "propCall2", "calls": "onBlur", "args": ["self", "e.target.value"]}
     )
-
+    string.content.attrs["disabled"] = {
+        "type": "dynamic",
+        "content": {"referenceType": "prop", "id": "disabled"},
+    }
     string.content.attrs["error"] = {
         "type": "dynamic",
         "content": {"referenceType": "state", "id": "error"},
@@ -387,6 +403,7 @@ def InputInteger():
 
     Component.addPropVariable("variant", {"type": "string", "defaultValue": "outlined"})
     Component.addPropVariable("suffix", {"type": "string", "defaultValue": ""})
+    Component.addPropVariable("disabled", {"type": "boolean", "defaultValue": False})
     Component.addPropVariable("label", {"type": "string", "defaultValue": ""})
     Component.addPropVariable("description", {"type": "string", "defaultValue": ""})
     Component.addPropVariable("value", {"type": "integer", "defaultValue": 0})
@@ -491,6 +508,10 @@ def InputChoice():
     string.content.events["change"].append(
         {"type": "propCall2", "calls": "onValidate", "args": ["self", "e.target.value"]}
     )
+    string.content.attrs["disabled"] = {
+        "type": "dynamic",
+        "content": {"referenceType": "prop", "id": "disabled"},
+    }
     option = TeleportElement(MaterialContent(elementType="MenuItem"))
     option.content.attrs["key"] = {
         "type": "dynamic",
@@ -522,6 +543,7 @@ def InputChoice():
     )
     Component.addPropVariable("variant", {"type": "string", "defaultValue": "outlined"})
     Component.addPropVariable("label", {"type": "string", "defaultValue": ""})
+    Component.addPropVariable("disabled", {"type": "boolean", "defaultValue": False})
     Component.addPropVariable("description", {"type": "string", "defaultValue": ""})
     Component.addPropVariable("options", {"type": "array", "defaultValue": []})
     Component.addPropVariable("value", {"type": "string", "defaultValue": ""})
@@ -588,6 +610,10 @@ def InputText():
     string.content.events["change"].append(
         {"type": "propCall2", "calls": "onValidate", "args": ["self", "e.target.value"]}
     )
+    string.content.attrs["disabled"] = {
+        "type": "dynamic",
+        "content": {"referenceType": "prop", "id": "disabled"},
+    }
     Component = TeleportComponent(name, string)
     Component.addStateVariable(
         "value", {"type": "string", "defaultValue": "$self.props.value"}
@@ -599,6 +625,7 @@ def InputText():
     Component.addPropVariable("variant", {"type": "string", "defaultValue": "outlined"})
     Component.addPropVariable("multiline", {"type": "boolean", "defaultValue": False})
     Component.addPropVariable("suffix", {"type": "string", "defaultValue": ""})
+    Component.addPropVariable("disabled", {"type": "boolean", "defaultValue": False})
     Component.addPropVariable("label", {"type": "string", "defaultValue": ""})
     Component.addPropVariable("description", {"type": "string", "defaultValue": ""})
     Component.addPropVariable("value", {"type": "string", "defaultValue": ""})
@@ -663,7 +690,10 @@ def InputBoolean():
     string = TeleportElement(MaterialContent(elementType="Switch"))
 
     string.content.attrs["fullWidth"] = True
-
+    string.content.attrs["disabled"] = {
+        "type": "dynamic",
+        "content": {"referenceType": "prop", "id": "disabled"},
+    }
     string.content.attrs[
         "dummy"
     ] = "$self.props.onDefault(self, self.props.value)"
@@ -695,6 +725,7 @@ def InputBoolean():
     Component.addPropVariable("variant", {"type": "string", "defaultValue": "outlined"})
     Component.addPropVariable("label", {"type": "string", "defaultValue": ""})
     Component.addPropVariable("description", {"type": "string", "defaultValue": ""})
+    Component.addPropVariable("disabled", {"type": "boolean", "defaultValue": False})
     Component.addPropVariable("value", {"type": "boolean", "defaultValue": False})
     Component.addPropVariable("onChange", {"type": "func", "defaultValue": "(e)=>{}"})
     Component.addPropVariable(
@@ -774,7 +805,10 @@ def InputFile():
     icon = TeleportElement(MaterialContent(elementType="Icon"))
     icontext = TeleportStatic(content="file_upload")
     string.content.attrs["component"] = "label"
-  
+    string.content.attrs["disabled"] = {
+        "type": "dynamic",
+        "content": {"referenceType": "prop", "id": "disabled"},
+    }
     string.content.attrs["fullWidth"] = True
     string.content.events["change"] = []
     string.content.events["change"].append({
@@ -827,6 +861,7 @@ def InputFile():
         "type": "func",
         "defaultValue": "(e)=>{}"
     })
+    Component.addPropVariable("disabled", {"type": "boolean", "defaultValue": False})
     Component.addPropVariable(
         "onValidate",
         {

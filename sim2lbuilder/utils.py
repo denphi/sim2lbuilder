@@ -49,15 +49,17 @@ def deleteHistory(tp, tc, *args, **kwargs):
 def cleanCache(tp, tc, *args, **kwargs):   
     eol = "\n";
     cache_store = kwargs.get("cache_store", "CacheStore");
-    cache_storage = kwargs.get("cache_storage", "cacheFactory('"+cache_store+"', 'INDEXEDDB')")
-    NanohubUtils.storageFactory(tp, store_name=cache_store, storage_name=cache_storage)          
-
+    store_name  = kwargs.get("store_name", "sessionStore");
+    NanohubUtils.storageFactory(tp, store_name=store_name)
+    
     js = "async (component)=>{" + eol    
     js += "  let selfr = component;" + eol
     js += "  var listState = [];" + eol
     js += "  var activeCache = [];" + eol
     js += "  let deleted = await " + cache_store + ".clear();" + eol
-    js += "  selfr.props.onSuccess();" + eol
+    js += "  deleted = await " + store_name + ".clear();" + eol
+    js += "  selfr.props.onSuccess(component,'');" + eol
+    
     js += "}" + eol
     tc.addPropVariable("cleanCache", {"type":"func", 'defaultValue' :js})   
 
@@ -235,7 +237,24 @@ def Settings(tp, Component, *args, **kwargs):
     NComponent.addPropVariable("onSuccess", deffunc)
     NComponent.addPropVariable("onError", deffunc)
     NComponent.addPropVariable("onStatusChange",deffunc)
-
+    NComponent.addPropVariable("parameters", {"type": "object", "defaultValue": {}})
+    NComponent.addStateVariable(
+        "lastDefault",
+        {"type": "string", "defaultValue": "$JSON.stringify(self.props.parameters)"},
+    )
+    NComponent.addPropVariable(
+        "onDefault",
+        {
+            "type": "func",
+            "defaultValue": """(s,e)=>{
+            let a = JSON.stringify(e); 
+            if (s.state && a!=s.state.lastDefault)
+                s.setState({'lastDefault':a, ...e});
+            return e;
+        }""",
+        },
+    )
+    
     Tabs = a.AppBuilder.createGroups(NComponent, layout, params)
     
     runSimulation = onSimulate(
@@ -267,7 +286,8 @@ def Settings(tp, Component, *args, **kwargs):
     Grid = TeleportElement(MaterialContent(elementType="Grid"))
     Grid.content.attrs["container"] = True
     Grid.content.attrs["direction"] = "column"
-
+    Grid.content.attrs["dummy"] = "$self.props.onDefault(self, self.props.parameters)"
+        
     Text0 = TeleportStatic()
     Text0.content = "Simulate"
     ToggleButton0 = TeleportElement(MaterialContent(elementType="ToggleButton"))
@@ -383,7 +403,6 @@ def onSimulate(tp, Component, *args, **kwargs):
         )
         js += "  var d_state = Object.assign({}, self.state);" + eol
         js += "  delete d_state['testing'];" + eol
-        js += "  delete d_state['paletteColors'];" + eol
         js += "  var str_key = JSON.stringify(d_state);" + eol
         js += "  var buffer_key = new TextEncoder('utf-8').encode(str_key);" + eol
         js += (
@@ -602,24 +621,6 @@ def onSimulate(tp, Component, *args, **kwargs):
     Component.addPropVariable(
         "onCheckSession", {"type": "func", "defaultValue": js}
     )
-    Component.addStateVariable(
-        "paletteColors",
-        {
-            "type": "array",
-            "defaultValue": [
-                "#636EFA",
-                "#EF553B",
-                "#00CC96",
-                "#AB63FA",
-                "#FFA15A",
-                "#19D3F3",
-                "#FF6692",
-                "#B6E880",
-                "#FF97FF",
-                "#FECB52",
-            ],
-        },
-    )
 
     js = "async (self, session_id, output)=> {" + eol
 
@@ -630,7 +631,6 @@ def onSimulate(tp, Component, *args, **kwargs):
     if use_cache:
         js += "      var d_state = Object.assign({}, self.state);" + eol
         js += "      delete d_state['testing'];" + eol
-        js += "      delete d_state['paletteColors'];" + eol
         js += "      var str_key = JSON.stringify(d_state);" + eol
         js += (
             "      var buffer_key = new TextEncoder('utf-8').encode(str_key);" + eol
@@ -659,10 +659,6 @@ def onSimulate(tp, Component, *args, **kwargs):
         js += "      if (!olist_json || olist_json == '')" + eol
         js += "        olist_json = '{}';" + eol
         js += "      var cacheList = JSON.parse(olist_json);" + eol
-        js += "      let paletteColorsc = [...self.state.paletteColors]" + eol
-        js += "      d_state['.color'] = paletteColorsc.shift();" + eol
-        js += "      paletteColorsc.push(d_state['.color']);" + eol
-        js += "      self.setState({'paletteColors': paletteColorsc});" + eol
         js += "      cacheList[hash_key] = d_state;" + eol
         js += (
             "      var hash_q = await "

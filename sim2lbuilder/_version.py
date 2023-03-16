@@ -23,6 +23,6 @@
 #  Authors:
 #  Daniel Mejia (denphi), Purdue University (denphi@denphi.com)
 
-version_info = (0, 0, 5)
+version_info = (0, 0, 7)
 __version__ = ".".join(map(str, version_info))
 

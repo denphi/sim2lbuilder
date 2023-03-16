@@ -262,7 +262,7 @@ def loadHTML(*args, **kwargs):
     js += "                divParent.textContent = value;" + eol 
     js += "          } else if (attr == 'children') {" + eol 
     js += "            for (var i = 0; i <value.length; i++) {" + eol 
-    js += "              divParent.append(appendDom(value[0], data));" + eol 
+    js += "              divParent.append(appendDom(value[i], data));" + eol 
     js += "            }" + eol 
     js += "          } else {" + eol 
     js += "            if (value == '$value')" + eol 
@@ -758,6 +758,7 @@ def squidDetail(*args, **kwargs):
 
 def refreshViews(tp, tc, *args, **kwargs):  
     cache_store = kwargs.get("cache_store", "CacheStore");
+    enable_compare = kwargs.get("enable_compare", True);
     views = kwargs.get("views", {});
     cache_storage = kwargs.get("cache_storage", "cacheFactory('"+cache_store+"', 'INDEXEDDB')")
     NanohubUtils.storageFactory(tp, store_name=cache_store, storage_name=cache_storage)          
@@ -768,26 +769,26 @@ def refreshViews(tp, tc, *args, **kwargs):
     js += "  var listState = [];" + eol
     js += "  var activeCache = [];" + eol
     js += "  if (" + cache_store + "){" + eol
-    js += "    var olen = await " + cache_store + ".length();" + eol
-    js += "    for (let ii=0; ii<olen; ii++) {" + eol
-    js += "      var key = await " + cache_store + ".key(ii);" + eol
-    js += "      const regex = new RegExp('" + regc + "([a-z0-9]{64})', 'im');" + eol
-    js += "      let m;" + eol
-    js += "      if ((m = regex.exec(key)) !== null) {" + eol
-    js += "          if (component.state.lastCache == m[1]){ " + eol
-    js += "              activeCache.push(m[1]);" + eol
-    js += "          } else if (component.state.compare){ " + eol
-    js += "              activeCache.push(m[1]);" + eol
-    js += "          }" + eol
-    js += "          listState.push({" + eol
-    js += "            'id':m[1]," + eol
-    js += "            'icon':'show_chart'," + eol
-    js += "            'value':m[1]," + eol
-    js += "          });" + eol
-    js += "          " + eol
-    js += "      };" + eol
-    js += "    }" + eol
-    js += "    selfr.setState({'cached_results':listState});" + eol
+    if enable_compare:
+        js += "    var olen = await " + cache_store + ".length();" + eol
+        js += "    for (let ii=0; ii<olen; ii++) {" + eol
+        js += "      var key = await " + cache_store + ".key(ii);" + eol
+        js += "      //const regex = new RegExp('" + regc + "([a-z0-9]{64})', 'im');" + eol
+        js += "      //let m;" + eol
+        js += "      //if ((m = regex.exec(key)) !== null) {" + eol
+        js += "      let m = [0,key.replace('" + regc + "','')];" + eol
+        js += "          if (component.state.lastCache == m[1]){ " + eol
+        js += "              activeCache.push(m[1]);" + eol
+        js += "          } else if (component.state.compare){ " + eol
+        js += "              activeCache.push(m[1]);" + eol
+        js += "          }" + eol
+        js += "      //};" + eol
+        js += "    }" + eol
+    else :
+        js += "    if (component.state.lastCache != ''){" + eol
+        js += "      activeCache.push(component.state.lastCache);" + eol
+        js += "    }" + eol
+
     js += "    selfr.setState({'active_cache':activeCache});" + eol
     js += "    let vis = selfr.state['visualization']; " + eol
     js += "    selfr.setState({'open_plot':selfr.state.visualization.id});" + eol

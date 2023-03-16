@@ -75,6 +75,8 @@ class UIDLConstructor():
         self.url = kwargs.get("url", "https://nanohub.org")
         self.drawer_width = kwargs.get("drawer_width", 250) 
         self.load_default = kwargs.get("load_default", False) 
+        self.enable_compare = kwargs.get("enable_compare", True) 
+        
         try :
             self.width = str(float(kwargs.get("width", "1024"))) + "px"
         except:
@@ -301,7 +303,6 @@ class UIDLConstructor():
         self.Component.addStateVariable("auth", {"type":"boolean", "defaultValue": False})
         self.Component.addStateVariable("open_details", {"type":"boolean", "defaultValue": False})
         self.Component.addStateVariable("src_detail", {"type":"object", "defaultValue": { '__html': '' }})        
-        self.Component.addStateVariable("cached_results", {"type":"array", "defaultValue": []})
         self.Component.addStateVariable("active_cache", {"type":"array", "defaultValue": []})
         self.Component.addStateVariable("lastCache", {"type":"string", "defaultValue": ""})
         for k,v in self.components.items():
@@ -320,7 +321,10 @@ class UIDLConstructor():
             is_open = self.load_default==True
         )
 
-        self.onRefreshViews = refreshViews(self.Project, self.Component, views=self.views)   
+        self.onRefreshViews = refreshViews(self.Project, 
+                                           self.Component, 
+                                           views=self.views,
+                                           enable_compare=self.enable_compare)   
         self.onDeleteHistory = deleteHistory(self.Project, self.Component)
         
         for k,v in self.views.items():
@@ -485,6 +489,7 @@ class UIDLConstructor():
         AppSettingsComponent.addPropVariable(
             "parameters", {"type": "object", "defaultValue": {}}
         )
+
         
         if (self.load_default):
             self.loadDefaultSimulation = loadDefaultSimulation(self.Project, AppSettingsComponent);
@@ -510,8 +515,7 @@ class UIDLConstructor():
                 "newState": "${...self.state.parameters, ...e}",
             }
         ]
-
-            
+        
         AppSettings.content.events["onError"] = [{
             "type": "stateChange",
             "modifies": "lastCache",
@@ -565,12 +569,10 @@ class UIDLConstructor():
             {
                 "type": "stateChange",
                 "modifies": "lastCache",
-                "newState": "$arguments[1]"
-            },
-            self.onRefreshViews[0],
+                "newState": "$arguments[1]",
+                "callbacks": self.onRefreshViews
+            }
         ]
-        
-        
 
         CAPPSettings = TeleportConditional(AppSettings)
         CAPPSettings.reference = {
@@ -675,7 +677,7 @@ class UIDLConstructor():
         }
 
         Cond1 = TeleportConditional(ToggleButton1)
-        Cond1.reference = {"type": "static","content":'self.state.cached_results.length'}
+        Cond1.reference = {"type": "static","content":'self.state.active_cache.length'}
         Cond1.value = 1
         Cond1.conditions =[{"operation" : ">"}]
 
@@ -688,7 +690,7 @@ class UIDLConstructor():
         ToggleButton2.addContent(Text2)
         ToggleButton2.content.events['click'] = self.onDeleteHistory
         Cond2 = TeleportConditional(ToggleButton2)
-        Cond2.reference = {"type": "static","content":'self.state.cached_results.length'}
+        Cond2.reference = {"type": "static","content":'self.state.active_cache.length'}
         Cond2.value = 2
         Cond2.conditions =[{"operation" : ">="}]
 
