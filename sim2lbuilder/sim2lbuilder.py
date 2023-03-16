@@ -302,6 +302,7 @@ class UIDLConstructor():
         self.Component.addStateVariable("compare", {"type":"boolean", "defaultValue": False})
         self.Component.addStateVariable("auth", {"type":"boolean", "defaultValue": False})
         self.Component.addStateVariable("open_details", {"type":"boolean", "defaultValue": False})
+        self.Component.addStateVariable("enable_history", {"type":"boolean", "defaultValue": False})
         self.Component.addStateVariable("src_detail", {"type":"object", "defaultValue": { '__html': '' }})        
         self.Component.addStateVariable("active_cache", {"type":"array", "defaultValue": []})
         self.Component.addStateVariable("lastCache", {"type":"string", "defaultValue": ""})
@@ -677,9 +678,9 @@ class UIDLConstructor():
         }
 
         Cond1 = TeleportConditional(ToggleButton1)
-        Cond1.reference = {"type": "static","content":'self.state.active_cache.length'}
-        Cond1.value = 1
-        Cond1.conditions =[{"operation" : ">"}]
+        Cond1.reference = {"type": "static","content":'self.state.enable_history'}
+        Cond1.value = True
+        Cond1.conditions =[{"operation" : "=="}]
 
 
         Text2 = TeleportStatic()
@@ -690,9 +691,9 @@ class UIDLConstructor():
         ToggleButton2.addContent(Text2)
         ToggleButton2.content.events['click'] = self.onDeleteHistory
         Cond2 = TeleportConditional(ToggleButton2)
-        Cond2.reference = {"type": "static","content":'self.state.active_cache.length'}
-        Cond2.value = 2
-        Cond2.conditions =[{"operation" : ">="}]
+        Cond2.reference = {"type": "static","content":'self.state.enable_history'}
+        Cond2.value = True
+        Cond2.conditions =[{"operation" : "=="}]
 
         ToggleButtonGroup = TeleportElement(MaterialContent(elementType="ToggleButtonGroup"))
         ToggleButtonGroup.addContent(Cond1)

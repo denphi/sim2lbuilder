@@ -768,6 +768,7 @@ def refreshViews(tp, tc, *args, **kwargs):
     js += "  let selfr = component;" + eol
     js += "  var listState = [];" + eol
     js += "  var activeCache = [];" + eol
+    js += "  let enable_history = false;" + eol
     js += "  if (" + cache_store + "){" + eol
     if enable_compare:
         js += "    var olen = await " + cache_store + ".length();" + eol
@@ -775,21 +776,26 @@ def refreshViews(tp, tc, *args, **kwargs):
         js += "      var key = await " + cache_store + ".key(ii);" + eol
         js += "      //const regex = new RegExp('" + regc + "([a-z0-9]{64})', 'im');" + eol
         js += "      //let m;" + eol
-        js += "      //if ((m = regex.exec(key)) !== null) {" + eol
-        js += "      let m = [0,key.replace('" + regc + "','')];" + eol
+        js += "      if (key.startsWith('" + regc + "')) {" + eol
+        js += "        let m = [0,key.replace('" + regc + "','')];" + eol
+        js += "        if (m[1].length == 64) {" + eol
         js += "          if (component.state.lastCache == m[1]){ " + eol
-        js += "              activeCache.push(m[1]);" + eol
+        js += "            activeCache.push(m[1]);" + eol
         js += "          } else if (component.state.compare){ " + eol
-        js += "              activeCache.push(m[1]);" + eol
+        js += "            activeCache.push(m[1]);" + eol
+        js += "            enable_history = true;" + eol
+        js += "          } else {" + eol
+        js += "            enable_history = true;" + eol
         js += "          }" + eol
-        js += "      //};" + eol
+        js += "        }" + eol
+        js += "      }" + eol
         js += "    }" + eol
     else :
         js += "    if (component.state.lastCache != ''){" + eol
         js += "      activeCache.push(component.state.lastCache);" + eol
         js += "    }" + eol
 
-    js += "    selfr.setState({'active_cache':activeCache});" + eol
+    js += "    selfr.setState({'enable_history': enable_history, 'active_cache':activeCache});" + eol
     js += "    let vis = selfr.state['visualization']; " + eol
     js += "    selfr.setState({'open_plot':selfr.state.visualization.id});" + eol
     for k,v in views.items():
