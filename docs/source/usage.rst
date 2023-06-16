@@ -55,7 +55,8 @@ Similarly, Outputs are defined within the schema, but unlike inputs, they do not
 of a default value. The flexibility to include custom widgets as inputs or outputs is provided, assuming the 
 required module is installed.
 For instance, if a map widget is required, the following code snippet demonstrates the inclusion of the ``Map`` 
-widget from the ``ipyleaflet`` library.
+widget from the ``ipyleaflet`` library. for more examples look at the examples notebooks
+(`inputs <https://github.com/denphi/sim2lbuilder/blob/main/examples/inputtypes.ipynb>`_, `outputs <https://github.com/denphi/sim2lbuilder/blob/main/examples/outputtypes.ipynb>`_)
 
 .. code-block:: python
 
@@ -143,3 +144,26 @@ The ful code looks like the following
 
 
 .. image:: ../AddingApp.png
+
+
+Exporting widgets
+-----------------
+
+The widget can be exported as a Python script by providing the ``format`` parameter as ``"file"`` when constructing the Widget. 
+This will generate a Download link that allows you to obtain the file.
+
+.. code-block:: python
+
+    s = WidgetConstructor(schema, format="file")
+    s.RunSimTool = RunSimTool
+    s.assemble()
+    s
+
+The exported Python script can be imported later to render the same results.
+By executing the script, you can reproduce and visualize the same outcomes
+
+.. code-block:: python
+
+    import MyWidget
+    MyWidget.MyWidget()
+
