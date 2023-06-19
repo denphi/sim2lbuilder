@@ -1,7 +1,10 @@
-API
-===
+Reference
+=========
 
-.. autosummary::
-   :toctree: generated
+.. module:: sim2lbuilder
 
-   sim2lbuilder
+.. autofunction:: GetSimtoolDefaultSchema
+
+.. autoclass:: UIDLConstructor
+
+.. autoclass:: WidgetConstructor
