@@ -10,8 +10,5 @@ sim2lbuilder
 Summary
 -------
 
-Reference
-=========
-
 .. autosummary::
    :toctree: generated
