@@ -15,7 +15,3 @@ Reference
 
 .. autosummary::
    :toctree: generated
-   
-   sim2lbuilder
-   views
-   utils
