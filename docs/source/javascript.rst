@@ -110,7 +110,7 @@ The loadPlotly view is particularly useful for visualizing dictionary outputs. I
 that describes a collection of sim2l outputs, where each key corresponds to the name of a specific sim2l output. 
 To access individual elements of the dictionary, the dollar symbol "$" is used as a prefix.
 
-.. image:: ../loadPlotly.png
+.. image:: ../LoadPlotly.png
 
 Here's an example that assumes the existence of a sim2l output called "Cosine Dispersion"
 with two components: ``"energy"`` and ``"well"``. Each component contains an array of numbers.
@@ -157,7 +157,7 @@ lines and marker colors, trace type, hover info, etc..
 
 loadPlotly view also requires a layout that describe the general layout of the visualization `(plotly layout) <https://plotly.com/javascript/reference/layout/>`_
 
-.. image:: ../loadPlotly2.png
+.. image:: ../LoadPlotly2.png
 
 Here's an additional example that assumes the existence of a sim2l output called "Local Density"
 with three components: ``"ldos"``, ``"energy"``, and ``"length"``. Each component contains an array of numbers.
@@ -397,6 +397,145 @@ This feature allows users to further analyze and examine the simulation outcomes
     }]
 
 For more information, explore the `nanoHUB results database <https://nanohub.org/results/>`-
+
+Combining Outputs in a View
+---------------------------
+
+There are instances where users may wish to visualize multiple outputs within the same View.
+The Sim2lBuilder library offers the capability to combine such outputs.
+
+.. image:: ../Combined.png
+
+Here is an example illustrating the combination of outputs from a sim2l, namely "melting_temperature,"
+"fraction_liquid," and "fraction_solid." All the content from these outputs can be displayed 
+within a single loadValuePlotly view.
+
+.. code-block:: python
+
+    s.outputs = [{
+        'id': 'combined',
+        'title': 'combined',
+        'function': 'loadValuePlotly',
+        'dataset': {
+            'melting_temperature,fraction_liquid,fraction_solid': {
+                'text': '$melting_temperature',
+                'mode': 'markers',
+                'x': '$fraction_solid',
+                'y': '$fraction_liquid',
+                'type': 'scatter',
+                'marker': {
+                    'size': 20
+                }
+            }
+        },
+        'layout': {}
+    }]
+
+Describing Shapes 
+-----------------
+
+the loadMultiPlotly and loadPlotly views offer an additional option called "shapes." 
+This option allows users to describe shapes over the plot, enhancing the overall visualization.
+
+.. image:: ../Shapes.png
+
+Here is an example demonstrating the usage of shapes to overlay Resonance Peaks over Potential Energies in the first plot:
+
+.. code-block:: python
+    s.outputs = [{
+        'id': 'Bandstructure',
+        'title' : 'Bandstructure',
+        'function': 'loadPlotly',
+        'dataset': {
+            'Potential Energy': {
+                'x': '$distance',
+                'y': '$potential',
+                'name' : 'Potential',
+                'line' : {
+                  'color' :'#0571b0'
+                },
+            },
+            'Transmission TBM RG' : {
+                'x': '$transmission',
+                'y': '$energy',
+                'name' : 'Transmission',
+                'line' : {
+                    'color' :'#542788'
+                },
+                'xaxis': 'x2',
+            },
+            'Parabolic Dispersion' : {
+                'x': '$resonance',
+                'y': '$energy',
+                'name' : 'Analytic',
+                'line' : {
+                    'color' :'#ca0020'
+                },
+                'xaxis': 'x3',
+            },
+            'Peaks Dispersion' : {
+                'x': '$resonance',
+                'y': '$energy',
+                'name' : 'Peaks Dispersion',
+                'mode' : 'markers',
+                'marker' : {
+                    'size' : 15,
+                    'color' :'#66bd63'
+                },
+                'xaxis': 'x3',
+            },
+            'Transmission Peaks Analytic' : {
+                'x': '$resonance',
+                'y': '$energy',
+                'name' : 'Peaks Analytic',
+                'mode' : 'markers',
+                'marker' : {
+                    'size' : 15,
+                    'color' :'#0571b0'
+                },
+                'xaxis': 'x3',
+            }
+
+        },
+        'layout': {
+            'title': 'Potential Energy vs Distance',
+            'showlegend': True,
+            'yaxis': {
+                'title': 'Energy (eV)',
+                'zeroline' : False
+            },
+            'xaxis': {
+                'title': 'Length (nm)',
+                'domain': [0, 0.33],
+                'zeroline' : False
+            },
+            'xaxis2': {
+                'title': 'Transmission Coeficient',
+                'domain': [0.34, 0.66],
+                'type': 'log',
+                'exponentformat': 'e',
+                'zeroline' : False
+            },
+            'xaxis3': {
+                'title': 'Peaks',
+                'domain': [0.67, 1],
+                'zeroline' : False
+            },
+
+        },
+        'shapes' : {
+            'Resonance Peaks': [{
+                'type': 'path',
+                'xref':'x1 domain',
+                'yref':'y1',
+                'line' : {
+                    'color' : '#ca0020'
+                },
+                'path':"M 0.05,$value H 0.95",
+                'editable' : False
+            }]
+        }
+    }]
 
 Customizing the App
 -------------------
