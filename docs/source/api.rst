@@ -9,12 +9,15 @@ sim2lbuilder
 
 Summary
 -------
+
+Reference
+=========
+
+.. module:: sim2lbuilder
+
 .. autosummary::
    :toctree: generated
    
-   .. module:: sim2lbuilder
-
    sim2lbuilder
    views
-   components
    utils
