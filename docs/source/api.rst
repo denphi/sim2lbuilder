@@ -12,6 +12,8 @@ Summary
 .. autosummary::
    :toctree: generated
    
+   .. module:: sim2lbuilder
+
    sim2lbuilder
    views
    components
