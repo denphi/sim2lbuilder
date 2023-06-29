@@ -1,8 +1,35 @@
 [build-system]
-requires = ["flit_core >=3.2,<4"]
-build-backend = "flit_core.buildapi"
-
+requires = [
+    'flit_core',
+    "setuptools"
+]
 [project]
 name = "sim2lbuilder"
-authors = [{name = "Daniel Mejiai", email = "dmejiapa@purdue.edu"}]
+version = "0.0.7"
+description = "Simtool builder"
+license = "BSD"
+authors = [
+    "Daniel Mejia <dmejiapa@purdue.edu>"
+]
+maintainers = [
+    "Daniel Mejia <dmejiapa@purdue.edu>"
+]
+readme = "README.md"
+documentation = "https://sim2lbuilder.readthedocs.io/en/latest/usage.html"
+repository = "https://github.com/denphi/sim2lbuilder"
+keywords = ["simtool", "Web App", "Sim2L"]
+classifiers = [
+    'Intended Audience :: Developers',
+    'Intended Audience :: Science/Research',
+    'License :: OSI Approved :: BSD License',
+    'Programming Language :: Python',
+    'Programming Language :: Python :: 3',
+    'Programming Language :: Python :: 3.4',
+    'Programming Language :: Python :: 3.5',
+    'Programming Language :: Python :: 3.6',
+    'Framework :: Jupyter'
+]
+packages = [
+    { include = "sim2lbuilder" }
+]
 dynamic = ["version", "description"]

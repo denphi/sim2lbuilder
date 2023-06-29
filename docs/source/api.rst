@@ -3,8 +3,18 @@ Reference
 
 .. module:: sim2lbuilder
 
+sim2lbuilder
+------------
+.. automodule:: sim2lbuilder
+
 .. autofunction:: GetSimtoolDefaultSchema
 
-.. autoclass:: UIDLConstructor
-
-.. autoclass:: WidgetConstructor
+Summary
+-------
+.. autosummary::
+   :toctree: generated
+   
+   sim2lbuilder
+   views
+   components
+   utils

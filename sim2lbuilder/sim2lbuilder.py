@@ -21,9 +21,9 @@
 #  Authors:
 #  Daniel Mejia (denphi), Purdue University (denphi@denphi.com)
 
+import simtool as st
 import warnings
 import importlib
-import simtool
 import re
 import os
 from IPython.display import display
@@ -823,12 +823,12 @@ class WidgetConstructor(VBox):
         VBox.__init__(self, **kwargs);
         
     def defaultRunSimTool (widget, *kargs):
-        import simtool
-        stl = simtool.searchForSimTool(widget.toolname)
-        inputs = simtool.getSimToolInputs(stl)
+        import simtool as st
+        stl = st.searchForSimTool(widget.toolname)
+        inputs = st.getSimToolInputs(stl)
         for i,w in widget.inputs.items():
             inputs[i].value = w.value
-        r = simtool.Run(stl, inputs)
+        r = st.Run(stl, inputs)
         for outk, out in widget.outputs.items():
             with out:
                 print(r.read(outk))
@@ -1053,6 +1053,33 @@ class WidgetConstructor(VBox):
         
         
 def GetSimtoolDefaultSchema( simtool_name, **kwargs ):
+    """Lookup simtool's schema by its name.
+    
+        Args:
+            simtool_name (str): SimTool name.
+
+            **button_click (str) : name of the function callback in the schema (Default "RunSimTool").
+
+            **button_description (str): name of describing callback in the schema (Default "Run SimTool")
+
+            **outputs_layout (str): layout container (Default "Accordeon")
+
+            **output (any): if passed the schema will only return this part of the schema, e.g 'inputs' (Default None)
+
+        Returns:
+
+            A simToolSchema dictionary containing.
+
+                name - the name of the simtool notebook if exists.
+
+                revision - the simtool revision (if installed or published).
+
+                inputs - the simtool inputs .
+
+                outputs - the simtool outputs .
+                
+                layout - suggested containers layout for inputs and outputs.
+    """
     schema = simtool_constructor(None, type('Node', (object,), {"value" :simtool_name}))
     dict_schema =  {
         'name': schema['name'],
@@ -1106,15 +1133,15 @@ def simtool_constructor(self, node):
     if len(values) > 2:
         action = values[2]        
     name = tool
-    stl = simtool.searchForSimTool(tool)
+    stl = st.searchForSimTool(tool)
     if (stl['notebookPath'] == None):
         raise Exception("Simtool is not valid")
     if (stl['published'] == False):
         warnings.warn("sim2l is not published")
         name = stl['notebookPath'].replace("/","+")
         
-    inputs = simtool.getSimToolInputs(stl)
-    outputs = simtool.getSimToolOutputs(stl)
+    inputs = st.getSimToolInputs(stl)
+    outputs = st.getSimToolOutputs(stl)
     if stl['simToolRevision'] is not None:
         revision = stl['simToolRevision'].replace("r", "")
     else:
@@ -1277,4 +1304,3 @@ class ImageUpload(HBox):
     def _valid_description(self, proposal):
         self._label.value = proposal['value']
         return proposal['value']
-

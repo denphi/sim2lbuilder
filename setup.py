@@ -18,8 +18,8 @@ from setuptools import setup
 # The name of the project
 name = 'sim2lbuilder'
 
-# Ensure a valid python version
-ensure_python('>=3.3')
+# Ensure a valid python version, HAS BEEN DEPRECATED
+#ensure_python('>=3')
 
 # Get our version
 version = get_version(pjoin('sim2lbuilder', '_version.py'))
@@ -28,6 +28,7 @@ long_description = ""
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
+print (find_packages())
 setup_args = {
     'name'            : name,
     'description'     : 'Simtool builder',

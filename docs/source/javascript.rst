@@ -10,7 +10,7 @@ schema for the specified sim2l and return it as a Python dictionary.
 
 .. code-block:: python
 
-    from sim2lbuilder GetSimtoolDefaultSchema, UIDLConstructor
+    from sim2lbuilder import GetSimtoolDefaultSchema, UIDLConstructor
     schema = GetSimtoolDefaultSchema("introtosimtools")
 
 However, instead of creating a ``WidgetConstructor``, in this case, we create a ``UIDLConstructor``
@@ -560,3 +560,4 @@ Here's an example of how you can load the app as a Custom Jupyter widget:
 
 
 .. image:: ../widget.png
+
