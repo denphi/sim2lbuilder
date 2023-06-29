@@ -434,14 +434,16 @@ within a single loadValuePlotly view.
 Describing Shapes 
 -----------------
 
-the loadMultiPlotly and loadPlotly views offer an additional option called "shapes." 
+loadMultiPlotly and loadPlotly views offer an additional option called "shapes." 
 This option allows users to describe shapes over the plot, enhancing the overall visualization.
 
 .. image:: ../Shapes.png
 
-Here is an example demonstrating the usage of shapes to overlay Resonance Peaks over Potential Energies in the first plot:
+Here is an example demonstrating the usage of shapes to overlay Resonance Peaks over Potential Energies 
+in the first plot:
 
 .. code-block:: python
+    
     s.outputs = [{
         'id': 'Bandstructure',
         'title' : 'Bandstructure',
