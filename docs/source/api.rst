@@ -1,8 +1,6 @@
 Reference
 =========
 
-.. module:: sim2lbuilder
-
 sim2lbuilder
 ------------
 .. automodule:: sim2lbuilder

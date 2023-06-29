@@ -1067,7 +1067,6 @@ def GetSimtoolDefaultSchema( simtool_name, **kwargs ):
             **output (any): if passed the schema will only return this part of the schema, e.g 'inputs' (Default None)
 
         Returns:
-
             A simToolSchema dictionary containing.
 
                 name - the name of the simtool notebook if exists.
@@ -1077,7 +1076,7 @@ def GetSimtoolDefaultSchema( simtool_name, **kwargs ):
                 inputs - the simtool inputs .
 
                 outputs - the simtool outputs .
-                
+
                 layout - suggested containers layout for inputs and outputs.
     """
     schema = simtool_constructor(None, type('Node', (object,), {"value" :simtool_name}))
