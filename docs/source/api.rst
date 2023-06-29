@@ -13,8 +13,6 @@ Summary
 Reference
 =========
 
-.. module:: sim2lbuilder
-
 .. autosummary::
    :toctree: generated
    
