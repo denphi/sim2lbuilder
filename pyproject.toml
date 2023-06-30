@@ -5,8 +5,6 @@ requires = [
 ]
 [project]
 name = "sim2lbuilder"
-version = "0.0.7"
-description = "Simtool builder"
 license = {text = "BSD License"}
 authors = [
     {name = "Daniel Mejia", email = "dmejiapa@purdue.edu"}
@@ -15,8 +13,6 @@ maintainers = [
     {name = "Daniel Mejia", email = "dmejiapa@purdue.edu"}
 ]
 readme = "README.md"
-documentation = "https://sim2lbuilder.readthedocs.io/en/latest/usage.html"
-repository = "https://github.com/denphi/sim2lbuilder"
 keywords = ["simtool", "Web App", "Sim2L"]
 classifiers = [
     'Intended Audience :: Developers',
@@ -29,7 +25,9 @@ classifiers = [
     'Programming Language :: Python :: 3.6',
     'Framework :: Jupyter'
 ]
-packages = [
-    { include = "sim2lbuilder" }
-]
+
 dynamic = ["version", "description"]
+
+[project.urls]
+documentation = "https://sim2lbuilder.readthedocs.io/en/latest/usage.html"
+repository = "https://github.com/denphi/sim2lbuilder"
