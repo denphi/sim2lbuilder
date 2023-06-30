@@ -20,4 +20,4 @@ sphinx:
 python:
   install:
     - method: pip
-      path: sim2lbuilder
+      path: .
