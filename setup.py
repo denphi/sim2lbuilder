@@ -64,7 +64,8 @@ setup_args = {
         'traitlets>=4.3.2',
         'ipysheet>=0.4.1',
         'nanohub-uidl>=0.1.5',
-        'Pillow>=7.2'
+        'Pillow>=7.2',
+        'jupyter_server'
     ], 
     'extras_require' : {
         'test': [
