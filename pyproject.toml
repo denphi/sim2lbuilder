@@ -9,10 +9,10 @@ version = "0.0.7"
 description = "Simtool builder"
 license = {text = "BSD License"}
 authors = [
-    "Daniel Mejia <dmejiapa@purdue.edu>"
+    {name = "Daniel Mejia", email = "dmejiapa@purdue.edu"}
 ]
 maintainers = [
-    "Daniel Mejia <dmejiapa@purdue.edu>"
+    {name = "Daniel Mejia", email = "dmejiapa@purdue.edu"}
 ]
 readme = "README.md"
 documentation = "https://sim2lbuilder.readthedocs.io/en/latest/usage.html"
