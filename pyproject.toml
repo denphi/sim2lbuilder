@@ -7,7 +7,7 @@ requires = [
 name = "sim2lbuilder"
 version = "0.0.7"
 description = "Simtool builder"
-license = "BSD"
+license = {text = "BSD License"}
 authors = [
     "Daniel Mejia <dmejiapa@purdue.edu>"
 ]
