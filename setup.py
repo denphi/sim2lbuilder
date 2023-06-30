@@ -65,7 +65,8 @@ setup_args = {
         'ipysheet>=0.4.1',
         'nanohub-uidl>=0.1.5',
         'Pillow>=7.2',
-        'jupyter_server'
+        'jupyter_server',
+        'notebook<7'
     ], 
     'extras_require' : {
         'test': [
