@@ -702,3 +702,124 @@ Here's an example of how you can load the app as a Custom Jupyter widget:
 
 .. image:: ../widget.png
 
+Publishing the App on nanoHUB
+-----------------------------
+
+Open your web browser and go to the following `URL: <https://youtu.be/golIpOOTwDY>`_. 
+This is a video tutorial that will guide you through the process of publishing UIDL javascript App.
+
+Create a tool
+^^^^^^^^^^^^^
+
+Once you've watched the video, open another tab in your web browser and navigate 
+to the following URL: `https://nanohub.org/tools/create <https://nanohub.org/tools/create>`_. If you're not already logged in,
+you will need to log in using your credentials.
+
+
+On the page, you will see a form where you need to provide information about your tool.
+Start by entering a short description of the tool in the designated field.
+
+
+Next, you will need to add your team members. There should be an option or button to add team members.
+Click on it and enter the necessary details of each team member.
+
+There might be a few other quick things you need to provide, such as additional information or settings. 
+Follow the on-screen instructions to complete these steps.
+
+When you reach the publishing options, make sure to select "Jupyter Notebook" as the preferred option.
+This will ensure that your tool is published on the correct environment.
+
+Select the correct container
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+New libraries (Jupyter70) are installed on a new container, YOU HAVE to request a debian10 container.
+if you develop your tool on Jupyter70, submit a `ticket <https://nanohub.org/support/ticket/new>`_ 
+requesting debian10 for your tool.
+
+Develop your tool
+^^^^^^^^^^^^^^^^^
+
+Open your web browser and go to either the deprecated `jupyte60 <https://nanohub.org/jupyter60>`_ 
+or  `Jupyter Notebook (202105)  <https://nanohub.org/jupyter70>`_. 
+These URLs will take you to the Jupyter Notebook interface where you can start creating your app.
+
+Follow the instructions and guidelines provided below and in the video tutorial 
+to develop your app using Jupyter Notebook. the jupyter notebook should be created in the `src` folder
+
+While assembling your App, ensure that you choose a proper name for the HTML file, 
+you can use the optional `copy_libraries` parameter to instruct the sim2lbuilder to copy all 
+JavaScript libraries locally instead of loading them remotely.
+
+.. code-block:: python
+
+    s.OUTFILE = "YOURAPPNAME.HTML"
+    s.assemble(
+        jupyter_notebook_url="", 
+        copy_libraries=True
+    )
+
+
+Makefile
+^^^^^^^^
+
+To ensure proper installation of the tool on nanoHUB, you have to create an appropriate Makefile under the 
+src directory. below is an example, replace `anaconda-7`` with the name of the desired environment 
+if you have chosen a different one.
+
+
+.. code-block:: Makefile
+
+    PROGRAM_NAME:= YOURAPPNAME.HTML
+
+    all:
+        . /etc/environ.sh; use -e -r anaconda-7; jupyter nbconvert --to python --execute *.ipynb 
+
+    install: all
+        mv ../src/$(PROGRAM_NAME) ../src/*.js ../bin
+        
+    clean:
+        rm -f ../src/*.py ../src/*.HTML ../src/*.js
+
+    distclean: clean
+        rm -f ../bin/*.py ../bin/*.HTML ../src/*.js
+
+    .PHONY: all install clean distclean
+
+
+invoke file
+^^^^^^^^^^^
+
+All nanoHUB tools require a properly configured invoke file for successful launching, 
+ensure that the invoke file loads the correct environment.
+Enable the '--local' option in the invoke file to allow the execution of sim2l within the same container 
+where your tool is launched, this eliminates the need for remote execution.
+
+.. code-block:: bash
+
+    #!/bin/sh
+    /usr/bin/invoke_app "$@" -t YOURAPPNAME \
+        -u wrwroxy-0.2 \
+        -u anaconda-7 \
+        -e PYTHONNOUSERSITE = yes \
+        -c "wrwroxy --logfile /dev/null" \
+        -C "run_uidl --local --app YOURAPPNAME --dir @tool/bin --port 8001 YOURAPPNAME.HTML" \
+        -w headless \
+        -r none
+
+Some parameters are not needed for old environments as juputer60, local execution is not enabled, 
+most probably your tool will require remote execution, submit a 
+requesting remote execution for your tool.
+
+For older environments like Jupyter600, certain parameters are unnecessary since local execution 
+is not enabled. In all likelihood, your tool will require remote execution instead. 
+To enable this feature, kindly submit a ticket requesting remote execution for your tool via 
+this `link <https://nanohub.org/support/ticket/new>`_.
+
+.. code-block:: bash
+
+    #!/bin/sh
+    /usr/bin/invoke_app "$@" -t YOURAPPNAME \
+        -u wrwroxy-0.1 \
+        -u anaconda-6 \
+        -c "wrwroxy --logfile /dev/null" \
+        -C "run_uidl --app YOURAPPNAME --dir @tool/bin --port 8001 YOURAPPNAME.HTML"

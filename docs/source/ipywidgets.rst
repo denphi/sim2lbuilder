@@ -155,6 +155,73 @@ By executing the script, you can reproduce and visualize the same outcomes
     MyWidget.MyWidget()
 
 
+For more examples visit the notebook `here <https://github.com/denphi/sim2lbuilder/blob/main/examples/st4pcpbt.ipynb>`_
 
 
-More examples visit the notebook `here <https://github.com/denphi/sim2lbuilder/blob/main/examples/st4pcpbt.ipynb>`_
+Publishing the App on nanoHUB
+-----------------------------
+
+Open your web browser and go to the following `URL: <https://nanohub.org/whypublish/whypublishdeployworkflow>`_. 
+This is a basic tutorial that will guide you through the process of publishing Jupyter workflows.
+
+Create a tool
+^^^^^^^^^^^^^
+
+Open another tab in your web browser and navigate to the following URL: 
+`https://nanohub.org/tools/create <https://nanohub.org/tools/create>`_. If you're not already logged in,
+you will need to log in using your credentials.
+
+
+On the page, you will see a form where you need to provide information about your tool.
+Start by entering a short description of the tool in the designated field.
+
+
+Next, you will need to add your team members. There should be an option or button to add team members.
+Click on it and enter the necessary details of each team member.
+
+There might be a few other quick things you need to provide, such as additional information or settings. 
+Follow the on-screen instructions to complete these steps.
+
+When you reach the publishing options, make sure to select "Jupyter Notebook" as the preferred option.
+This will ensure that your tool is published on the correct environment.
+
+Select the correct container
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+New libraries (Jupyter70) are installed on a new container, you have to request a debian10 container.
+if you develop your tool on Jupyter70, submit a `ticket <https://nanohub.org/support/ticket/new>`_ 
+requesting debian10 for your tool.
+
+Develop your tool
+^^^^^^^^^^^^^^^^^
+
+Open your web browser and go to either the deprecated `jupyte60 <https://nanohub.org/jupyter60>`_ 
+or  `Jupyter Notebook (202105)  <https://nanohub.org/jupyter70>`_. 
+These URLs will take you to the Jupyter Notebook interface where you can start creating your app.
+
+invoke file
+^^^^^^^^^^^
+
+All nanoHUB tools require a properly configured invoke file for successful launching, 
+ensure that the invoke file loads the correct environment. `-A` options ensures that your notebook is
+launched in app-mode, all code is going to be hidden and only widgets will be visible.
+
+.. code-block:: bash
+
+    #!/bin/sh
+    /usr/bin/invoke_app "$@" -t YOURAPPNAME
+        -C "start_jupyter -t -A -T @tool YOURAPPNAME.ipynb" \
+        -u anaconda-7 \
+        -w headless \
+        -r none
+
+
+For older environments like Jupyter60, certain parameters are unnecessary.
+
+.. code-block:: bash
+
+    #!/bin/sh
+    /usr/bin/invoke_app "$@" -t YOURAPPNAME
+        -C "start_jupyter -t -A -T @tool YOURAPPNAME.ipynb" \
+        -u anaconda-6
+
