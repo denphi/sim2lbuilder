@@ -806,11 +806,7 @@ where your tool is launched, this eliminates the need for remote execution.
         -w headless \
         -r none
 
-Some parameters are not needed for old environments as juputer60, local execution is not enabled, 
-most probably your tool will require remote execution, submit a 
-requesting remote execution for your tool.
-
-For older environments like Jupyter600, certain parameters are unnecessary since local execution 
+For older environments like Jupyter60, certain parameters are unnecessary since local execution 
 is not enabled. In all likelihood, your tool will require remote execution instead. 
 To enable this feature, kindly submit a ticket requesting remote execution for your tool via 
 this `link <https://nanohub.org/support/ticket/new>`_.
