@@ -26,7 +26,7 @@ def loadPlotly(*args, **kwargs):
     js += "    var state = component.state;" + eol
     js += "    var lseq = Array();" + eol
     js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
-    js += "      let sseq = sequence.split(',')" + eol
+    js += "      let sseq = sequence.split(',').filter(i => i);" + eol
     js += "      if (sseq.length>1){" + eol
     js += "        let merged = {};" + eol
     js += "        for (let seqi=0;seqi<sseq.length;seqi++ ){" + eol
@@ -36,6 +36,7 @@ def loadPlotly(*args, **kwargs):
     js += "        }" + eol
     js += "        jsonOutput[sequence] = merged;" + eol
     js += "      }" + eol
+    js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let curves = jsonOutput[sequence];" + eol
     js += "        let datac = JSON.parse(JSON.stringify(data));" + eol
@@ -184,7 +185,7 @@ def loadValuePlotly(*args, **kwargs):
     js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
     js += "      let datac = JSON.parse(JSON.stringify(data));" + eol
     js += "      cdata[sequence] = {...cdata[sequence],...datac};" + eol
-    js += "      let sseq = sequence.split(',')" + eol
+    js += "      let sseq = sequence.split(',').filter(i => i);" + eol
     js += "      if (sseq.length>0){" + eol
     js += "        for (let seqi=0;seqi<sseq.length;seqi++ ){" + eol
     js += "          if (sseq[seqi] in jsonOutput){" + eol
@@ -287,6 +288,7 @@ def loadHTML(*args, **kwargs):
     js += "    var lseq = Array();" + eol
     js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
     js += "      let datac = JSON.parse(JSON.stringify(data));" + eol
+    js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let dom = appendDom(datac, jsonOutput[sequence]);" + eol
     js += "        if (component.state.lastCache != hash_key)" + eol
@@ -340,6 +342,7 @@ def loadTablePlotly(*args, **kwargs):
     js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
     js += "      let datac = JSON.parse(JSON.stringify(data));" + eol
     js += "      cdata = {...cdata,...datac};" + eol
+    js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let cell = '';" + eol
     js += "        try {" + eol
@@ -431,7 +434,7 @@ def loadSequencePlotly(*args, **kwargs):
     js += "    var state = component.state;" + eol
     js += "    var lseq = Array();" + eol
     js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
-    js += "      let sseq = sequence.split(',')" + eol
+    js += "      let sseq = sequence.split(',').filter(i => i);" + eol
     js += "      if (sseq.length>1){" + eol
     js += "        let merged = {};" + eol
     js += "        for (let seqi=0;seqi<sseq.length;seqi++ ){" + eol
@@ -441,13 +444,24 @@ def loadSequencePlotly(*args, **kwargs):
     js += "        }" + eol
     js += "        jsonOutput[sequence] = merged;" + eol
     js += "      }" + eol
+    js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let mcurves = jsonOutput[sequence];" + eol
     js += "        let pos = 0;" + eol
     js += "        if (data.unique){ " + eol
     js += "          mcurves = {}" + eol
     js += "          Object.entries(cframes).forEach(([k,c]) => {" + eol
-    js += "            mcurves[k] = jsonOutput[sequence];" + eol
+    js += "            if (String(data.unique).startsWith('index')){" + eol
+    js += "              let shift = data.unique.replace('index','').match(/\d+/g)" + eol
+    js += "              if (shift.length>0)" + eol
+    js += "                shift = parseInt(shift[0]);" + eol
+    js += "              else" + eol
+    js += "                shift = 0;" + eol
+    js += "              let ind = Object.keys(mcurves).length + shift;" + eol
+    js += "              mcurves[k] = Object.fromEntries(Object.entries(jsonOutput[sequence]).map(([k2,v2])=>[k2,[v2[ind]]]));"  + eol
+    js += "            } else {" + eol
+    js += "              mcurves[k] = jsonOutput[sequence];" + eol
+    js += "            }" + eol
     js += "          });" + eol 
     js += "        }" + eol 
     js += "        Object.entries(mcurves).forEach(([key,c]) => {" + eol
@@ -612,7 +626,7 @@ def loadMultiPlotly(*args, **kwargs):
     js += "    var state = component.state;" + eol
     js += "    var lseq = Array();" + eol
     js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
-    js += "      let sseq = sequence.split(',')" + eol
+    js += "      let sseq = sequence.split(',').filter(i => i);" + eol
     js += "      if (sseq.length>1){" + eol
     js += "        let merged = {};" + eol
     js += "        for (let seqi=0;seqi<sseq.length;seqi++ ){" + eol
@@ -622,6 +636,7 @@ def loadMultiPlotly(*args, **kwargs):
     js += "        }" + eol
     js += "        jsonOutput[sequence] = merged;" + eol
     js += "      }" + eol
+    js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let curvesm = jsonOutput[sequence];" + eol
     js += "        Object.entries(curvesm).forEach(([k2,curves]) => {" + eol
@@ -657,6 +672,7 @@ def loadMultiPlotly(*args, **kwargs):
     js += "    cdata = cdata.concat(lseq);" + eol
     js += "    lseq = Array();" + eol
     js += "    Object.entries(shapes).forEach(([sequence,data]) => {" + eol
+    js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let curves = jsonOutput[sequence];" + eol
     js += "        if (Array.isArray(curves)){" + eol
