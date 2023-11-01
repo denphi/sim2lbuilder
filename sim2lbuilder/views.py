@@ -538,14 +538,14 @@ def loadSequencePlotly(*args, **kwargs):
     js += "  } " + eol
     js += "  if (layout['xaxis'] && layout['xaxis']['type'] && layout['xaxis']['type'] == 'log'){" + eol
     js += "    if (layout['xaxis']['range'][0] == 0){" + eol
-    js += "      layout['xaxis']['range'][0] = 1e-20;" + eol
+    js += "      layout['xaxis']['range'][0] = 1e-6;" + eol
     js += "    }" + eol
     js += "    layout['xaxis']['range'][0] = Math.log10(layout['xaxis']['range'][0]);" + eol
     js += "    layout['xaxis']['range'][1] = Math.log10(layout['xaxis']['range'][1]);" + eol
     js += "  }" + eol
     js += "  if (layout['yaxis'] && layout['yaxis']['type'] && layout['yaxis']['type'] == 'log'){" + eol
     js += "    if (layout['yaxis']['range'][0] == 0){" + eol
-    js += "      layout['yaxis']['range'][0] = 1e-20;" + eol
+    js += "      layout['yaxis']['range'][0] = 1e-6;" + eol
     js += "    }" + eol
     js += "    layout['yaxis']['range'][0] = Math.log10(layout['yaxis']['range'][0]);" + eol
     js += "    layout['yaxis']['range'][1] = Math.log10(layout['yaxis']['range'][1]);" + eol
