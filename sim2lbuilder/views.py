@@ -39,6 +39,9 @@ def loadPlotly(*args, **kwargs):
     js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let curves = jsonOutput[sequence];" + eol
+    js += "        if (curves.startsWith('data:application/octet-stream;base64,')){" + eol
+    js += "            curves = JSON.parse(atob(curves.slice(37)));" + eol
+    js += "        }" + eol
     js += "        let datac = JSON.parse(JSON.stringify(data));" + eol
     js += "        Object.entries(datac).forEach(([k,v]) => {" + eol
     js += "          if (v.toString().startsWith('$')){" + eol
@@ -290,7 +293,11 @@ def loadHTML(*args, **kwargs):
     js += "      let datac = JSON.parse(JSON.stringify(data));" + eol
     js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
-    js += "        let dom = appendDom(datac, jsonOutput[sequence]);" + eol
+    js += "        let curves = jsonOutput[sequence];" + eol
+    js += "        if (curves.startsWith('data:application/octet-stream;base64,')){" + eol
+    js += "            curves = atob(curves.slice(37));" + eol
+    js += "        }" + eol
+    js += "        let dom = appendDom(datac, curves);" + eol
     js += "        if (component.state.lastCache != hash_key)" + eol
     js += "          dom.setAttribute('style', 'border: 10px solid lightgrey');" + eol
     js += "        else" + eol
