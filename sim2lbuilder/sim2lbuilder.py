@@ -21,9 +21,9 @@
 #  Authors:
 #  Daniel Mejia (denphi), Purdue University (denphi@denphi.com)
 
-import simtool as st
 import warnings
 import importlib
+import simtool
 import re
 import os
 from IPython.display import display
@@ -34,6 +34,7 @@ from PIL import Image
 import io, json
 import inspect
 
+
 from nanohubuidl.material import MaterialBuilder
 from nanohubuidl.material import MaterialContent
 from nanohubuidl.plotly import PlotlyBuilder
@@ -41,7 +42,9 @@ from nanohubuidl.nanohub import Auth
 from nanohubuidl.ipywidgets import buildWidget
 from nanohubuidl.teleport import TeleportGlobals
 from nanohubuidl.teleport import TeleportProject, TeleportElement, TeleportContent
-from nanohubuidl.teleport import TeleportStatic, TeleportConditional
+from nanohubuidl.teleport import TeleportStatic, TeleportConditional, TeleportDynamic
+from nanohubuidl.teleport import NanohubUtils, TeleportRepeat
+
 
 from .utils import buildParams, buildLayout
 from .utils import deleteHistory, Settings
@@ -76,7 +79,7 @@ class UIDLConstructor():
         self.drawer_width = kwargs.get("drawer_width", 250) 
         self.load_default = kwargs.get("load_default", False) 
         self.enable_compare = kwargs.get("enable_compare", True) 
-        
+        self.settingsTop = kwargs.get("settings_top", False) 
         try :
             self.width = str(float(kwargs.get("width", "1024"))) + "px"
         except:
@@ -604,8 +607,24 @@ class UIDLConstructor():
         ParametersPanel.content.style={"width":"100%"}
         return ParametersPanel
    
-    def buildExpansionPanel(self):
+    def buildExpansionPanel(self, top=False):
         RESULTS = {}
+        if top == True:
+            RESULTS["settings"] = {
+                'title':'Settings',
+                'action': [
+                    {
+                        "type": "stateChange",
+                        "modifies": "open_params",
+                        "newState": True,
+                    },
+                    {
+                        "type": "stateChange",
+                        "modifies": "open_details",
+                        "newState": False,
+                    },
+                ]
+            }
         for output in self.outputs:
             if "visualization" not in self.Component.stateDefinitions:
                 self.Component.addStateVariable("visualization", {
@@ -628,21 +647,22 @@ class UIDLConstructor():
                 "defaultValue": {}
             })
             
-        RESULTS["settings"] = {
-            'title':'Settings',
-            'action': [
-                {
-                    "type": "stateChange",
-                    "modifies": "open_params",
-                    "newState": True,
-                },
-                {
-                    "type": "stateChange",
-                    "modifies": "open_details",
-                    "newState": False,
-                },
-            ]
-        }
+        if top == False:
+            RESULTS["settings"] = {
+                'title':'Settings',
+                'action': [
+                    {
+                        "type": "stateChange",
+                        "modifies": "open_params",
+                        "newState": True,
+                    },
+                    {
+                        "type": "stateChange",
+                        "modifies": "open_details",
+                        "newState": False,
+                    },
+                ]
+            }
         
         self.Component.addStateVariable(
             "open_plot", {"type": "string", "defaultValue": list(RESULTS.keys())[0]}
@@ -712,8 +732,276 @@ class UIDLConstructor():
 
         LAppBar.addContent(ToggleButtonGroup)
         return LAppBar
+
+    def deleteCurrent(self, *args, **kwargs):
+        tp = self.Project 
+        tc = self.Component
+        eol = "\n";
+        cache_store = kwargs.get("cache_store", "CacheStore");
+        cache_storage = kwargs.get("cache_storage", "cacheFactory('"+cache_store+"', 'INDEXEDDB')")
+        NanohubUtils.storageFactory(tp, store_name=cache_store, storage_name=cache_storage)          
+
+        regc = tp.project_name    
+        regc = "_" + re.sub("[^a-zA-Z0-9]+", "", regc) + "_"
+
+        js = "async (component)=>{" + eol    
+        js += "  let selfr = component;" + eol
+        js += "  var listState = [];" + eol
+        js += "  var activeCache = [];" + eol
+        js += "  let newstate = '';" + eol
+        js += "  var olen = await " + cache_store + ".length();" + eol
+        js += "  for (let ii=0; ii<olen; ii++) {" + eol
+        js += "    var key = await " + cache_store + ".key(ii);" + eol
+        js += "    const regex = new RegExp('" + regc + "([a-z0-9]{64})', 'im');" + eol
+        js += "    let m;" + eol
+        js += "    if ((m = regex.exec(key)) !== null) {" + eol
+        js += "        if (component.state.lastCache == m[1]){ " + eol
+        js += "            var deleted = await " + cache_store + ".removeItem(m[1]);" + eol
+        js += "        } else { " + eol
+        js += "            newstate = m[1] " + eol
+        js += "        } " + eol
+        js += "    };" + eol
+        js += "  }" 
+        js += "  selfr.setState({'lastCache':newstate});" + eol
+        js += "  selfr.props.refreshViews(selfr);" + eol
+        js += "}" + eol
+
+        tc.addPropVariable("deleteCurrent", {"type":"func", 'defaultValue' :js})   
+
+        return [
+          {
+            "type": "propCall2",
+            "calls": "deleteCurrent",
+            "args": ['self', '']
+          }
+        ] 
+    
+    def buildThemeProvider(self, *args, **kwargs):
+        eol = "\n";
+        cache_store = kwargs.get("cache_store", "CacheStore");
+        cache_storage = kwargs.get("cache_storage", "cacheFactory('"+cache_store+"', 'INDEXEDDB')")
+        NanohubUtils.storageFactory(self.Project, store_name=cache_store, storage_name=cache_storage)     
+        self.onDeleteCurrent = self.deleteCurrent()
+        self.onRefreshViews = refreshViews(self.Project, 
+                                           self.Component, 
+                                           views=self.views,
+                                           enable_compare=self.enable_compare) 
+        self.Component.addStateVariable("list_cache", {"type":"array", "defaultValue": []})
+
+        self.Component.addStateVariable("params", {"type":"object", "defaultValue": {}})
+
+        js =  "(s, l, n)=>{" + eol    
+        js += "  if (s.state.params && s.state.params[l] && s.state.params[l][n]){" + eol
+        js += "    return s.state.params[l][n];" + eol
+        js += "  } else {" + eol
+        js += "    if (n == 'title'){" + eol
+        js += "      return l;" + eol
+        js += "    } else if (n == 'icon') { " + eol
+        js += "      return (l==s.state.lastCache)?'primary':'primary';" + eol
+        js += "    } else {" + eol
+        js += "      return '';" + eol
+        js += "    }" + eol
+        js += "  }" + eol
+        js += "}" + eol
+        self.Component.addPropVariable("getParam", {"type":"func", "defaultValue": js})
         
-    def buildThemeProvider(self):
+        js =  "(s, e, n)=>{" + eol    
+        js += "  if(s.state.lastCache && s.state.params){" + eol
+        js += "    let paramsCache = {...s.state.params};" + eol
+        js += "    if (!paramsCache[s.state.lastCache] || typeof paramsCache[s.state.lastCache] !== 'object')" + eol
+        js += "      paramsCache[s.state.lastCache] = {}" + eol
+        js += "    paramsCache[s.state.lastCache][n]= e;" + eol
+        js += "    s.setState({'params': paramsCache});" + eol
+        js += "    " + cache_store + ".setItem('cache_params', JSON.stringify(paramsCache));" + eol
+        js += "  }" + eol
+        js += "}" + eol
+        self.Component.addPropVariable("setParam", {"type":"func", "defaultValue": js})
+
+
+        SliderBar = TeleportElement(MaterialContent(elementType="Drawer"))
+        SliderBar.content.attrs["variant"] = "persistent"
+        SliderBar.content.attrs["open"] = True
+        SliderBar.content.attrs["anchor"] = "right"
+        SliderBar.content.style['width'] = "50px"
+        SliderBar.content.style['backgroundColor'] = "#DBEAF0"
+        SliderBar.content.style['overflow'] = "auto"
+        SliderBar.content.style['margin'] = "0px"
+
+
+        ToggleButton = TeleportElement(MaterialContent(elementType="ToggleButton"))
+        ToggleButton.content.style['width'] = "50px"
+
+        ToggleButton.content.attrs["value"] = "$index"
+
+        Tooltip = TeleportElement(MaterialContent(elementType="Tooltip"))
+        Tooltip.content.attrs["title"] = "$self.props.getParam(self, local, 'title')"
+        Tooltip.content.attrs["placement"] = "left"
+        placement="top"
+
+        Badge = TeleportElement(MaterialContent(elementType="Badge"))
+        Badge.content.attrs["badgeContent"] = " "
+        Badge.content.attrs["variant"] = "dot"
+        Badge.content.attrs["color"] = "$self.props.getParam(self, local, 'icon')"
+
+        Icon = TeleportElement(MaterialContent(elementType="Icon"))
+        Icon.content.attrs["color"] = "$local == self.state.lastCache?self.props.getParam(self, local, 'icon'):'disabled'"
+        Icon.addContent(TeleportDynamic(content={
+            "referenceType": "local",
+            "id": "local == self.state.lastCache?'bookmark':'bookmark_border'"
+        }))
+
+        Badge.addContent(Icon) 
+        Tooltip.addContent(Badge) 
+        ToggleButton.addContent(Tooltip)  
+        ToggleButton.content.events['click'] = [
+            { "type": "stateChange", "modifies": "lastCache" ,"newState": "$local", "callbacks" : self.onRefreshViews}
+        ]
+
+        RepeatButton = TeleportRepeat(ToggleButton)
+        RepeatButton.iteratorName = "local"
+        RepeatButton.useIndex = True
+        RepeatButton.dataSource = {
+            "type": "dynamic",
+            "content": {
+                "referenceType": "state",
+                "id": "list_cache"
+            }
+        }
+
+        SliderBar.addContent(RepeatButton)
+
+        ToggleButton2 = TeleportElement(MaterialContent(elementType="ToggleButton"))
+        ToggleButton2.content.style['width'] = "50px"
+
+        Tooltip2 = TeleportElement(MaterialContent(elementType="Tooltip"))
+        Tooltip2.content.attrs["title"] = "Clear Current Run"
+        Tooltip2.content.attrs["placement"] = "left"
+
+        Icon2 = TeleportElement(MaterialContent(elementType="Icon"))
+        Icon2.content.attrs["color"] = "$self.props.getParam(self, self.state.lastCache, 'icon')"
+
+        icontext2 = TeleportStatic(content="delete")
+        Icon2.addContent(icontext2)  
+        Tooltip2.addContent(Icon2)  
+        ToggleButton2.addContent(Tooltip2)  
+        ToggleButton2.content.events['click'] = self.onDeleteCurrent
+
+
+        ToggleButton3 = TeleportElement(MaterialContent(elementType="ToggleButton"))
+        ToggleButton3.content.style['width'] = "50px"
+
+        Tooltip3 = TeleportElement(MaterialContent(elementType="Tooltip"))
+        Tooltip3.content.attrs["title"] = "Clear History"
+        Tooltip3.content.attrs["placement"] = "left"
+
+        Icon3 = TeleportElement(MaterialContent(elementType="Icon"))
+        Icon3.content.attrs["color"] = "error"
+
+        icontext3 = TeleportStatic(content="auto_delete")
+        Icon3.addContent(icontext3)  
+        Tooltip3.addContent(Icon3)  
+        ToggleButton3.addContent(Tooltip3)  
+        ToggleButton3.content.events['click'] = self.onDeleteHistory
+
+        ToggleButton4 = TeleportElement(MaterialContent(elementType="ToggleButton"))
+        ToggleButton4.content.style['width'] = "50px"
+
+        Tooltip4 = TeleportElement(MaterialContent(elementType="Tooltip"))
+        Tooltip4.content.attrs["title"] = "Configuration"
+        Tooltip4.content.attrs["placement"] = "left"
+
+        Icon4 = TeleportElement(MaterialContent(elementType="Icon"))
+        Icon4.content.attrs["color"] = "$self.props.getParam(self, self.state.lastCache, 'icon')"
+
+        icontext4 = TeleportStatic(content="settings")
+        Icon4.addContent(icontext4)
+        Tooltip4.addContent(Icon4)
+        ToggleButton4.addContent(Tooltip4)
+        ToggleButton4.content.events['click'] = [{ "type": "stateChange", "modifies": "dialog_open","newState": True}]
+
+        SliderBar.addContent(ToggleButton4)
+        SliderBar.addContent(ToggleButton2)
+        SliderBar.addContent(ToggleButton3)
+
+
+        self.Component.addStateVariable("dialog_open", {"type":"bool", "defaultValue":False})
+
+        PDialog = TeleportElement(MaterialContent(elementType="Dialog"))
+        PDialog.content.attrs['open'] = {
+            "type": "dynamic",
+            "content": {
+                "referenceType": "state",
+                "id": "dialog_open"
+            }
+        }
+        PDialogTitle = TeleportElement(MaterialContent(elementType="DialogTitle"))
+
+        PDialogContent = TeleportElement(MaterialContent(elementType="DialogContent"))
+        PDialogText = TeleportElement(MaterialContent(elementType="DialogContentText"))
+        PTextField = TeleportElement(MaterialContent(elementType="TextField"))
+        PTextField.content.attrs['autoFocus'] = True
+        PTextField.content.attrs['margin'] = "dense"
+        PTextField.content.attrs['label'] = "Description"
+        PTextField.content.attrs['type'] = "text"
+        PTextField.content.attrs['fullWidth'] = True
+        PTextField.content.attrs['variant'] = "standard"
+        PTextField.content.attrs['defaultValue'] = "$self.props.getParam(self, self.state.lastCache, 'title')"
+        PTextField.content.events['onBlur'] = [{
+            "type": "propCall2",
+            "calls": "setParam",
+            "args": ['self', 'e.target.value', "'title'"]
+        }]
+
+        PRadioGroup = TeleportElement(MaterialContent(elementType="RadioGroup"))
+        PRadioGroup.content.attrs['row'] = True
+        colors = ['action','primary','secondary','error','info','success','warning']
+        for c in colors:
+            PRadio = TeleportElement(MaterialContent(elementType="Icon"))
+            PRadio.content.attrs['color'] = c
+            PRadio.addContent(TeleportStatic(content="bookmark"))
+            CPRadio = TeleportConditional(TeleportStatic(content="_border"))
+            CPRadio.reference = {
+                "type": "dynamic",
+                "content": {
+                    "referenceType": "prop",
+                    "id": "getParam(self, self.state.lastCache, 'icon') == '" + c + "'"
+                }
+            }    
+            CPRadio.value = False
+            CPRadio.conditions =[{"operation" : "=="}]
+            PRadio.addContent(CPRadio)
+            PRadio.content.events['onClick'] = [{
+                "type": "propCall2",
+                "calls": "setParam",
+                "args": ['self', "'" + c + "'", "'icon'"]
+            }]
+            PRadioGroup.addContent(PRadio)
+
+
+        PDialogActions = TeleportElement(MaterialContent(elementType="DialogActions"))
+        PButton = TeleportElement(MaterialContent(elementType="Button"))
+        PCButton = TeleportStatic(content="Close")
+        PButton.addContent(PCButton)
+
+        PButton.content.events['click'] = [{ "type": "stateChange", "modifies": "dialog_open","newState": False},  self.onRefreshViews[0]]
+
+        PDialog.addContent(PDialogTitle)
+        PDialog.addContent(PDialogContent)
+        PDialog.addContent(PDialogActions)
+
+        PDialogTitle.addContent(TeleportStatic(content="Simulation Properties"))
+
+        PDialogContent.addContent(PDialogText)
+        PDialogText.addContent(TeleportStatic(content="Please describe the simulation identified with squid ("))
+        PDialogText.addContent(TeleportDynamic(content={"referenceType": "state","id": "lastCache"}))
+        PDialogText.addContent(TeleportStatic(content=")"))
+
+        PDialogContent.addContent(PTextField)
+        PDialogContent.addContent(PRadioGroup)
+
+        PDialogActions.addContent(PButton)
+        
+        
         Gridv2 = TeleportElement(MaterialContent(elementType="Grid"))
         Gridv2.content.attrs["container"] = True
         Gridv2.content.attrs["direction"] = "column"
@@ -728,7 +1016,7 @@ class UIDLConstructor():
         Gridv2.content.style['height'] = "calc(-64px + " + str(self.height) + ")"
 
         Drawer = TeleportElement(MaterialContent(elementType="Paper"))
-        Drawer.addContent(self.buildExpansionPanel())
+        Drawer.addContent(self.buildExpansionPanel(self.settingsTop))
         Drawer.addContent(self.buildLowerBar())
 
         Drawer.content.style['position'] = "relative"
@@ -743,6 +1031,8 @@ class UIDLConstructor():
         Gridh.content.attrs["direction"] = "row" 
         Gridh.addContent(Drawer)
         Gridh.addContent(Gridv2)  
+        Gridh.addContent(SliderBar)
+        Gridh.addContent(PDialog)
 
         Gridv = TeleportElement(MaterialContent(elementType="Grid"))
         Gridv.content.attrs["container"] = True
@@ -755,7 +1045,9 @@ class UIDLConstructor():
         ThemeProvider.addContent(self.ErrorMessage)
         ThemeProvider.addContent(self.Loader)
         ThemeProvider.addContent(Gridv)
+        
         return ThemeProvider
+    
         
     def assemble(self, **kwargs):
         if kwargs.get("uidl_local",False):
@@ -823,12 +1115,12 @@ class WidgetConstructor(VBox):
         VBox.__init__(self, **kwargs);
         
     def defaultRunSimTool (widget, *kargs):
-        import simtool as st
-        stl = st.searchForSimTool(widget.toolname)
-        inputs = st.getSimToolInputs(stl)
+        import simtool
+        stl = simtool.searchForSimTool(widget.toolname)
+        inputs = simtool.getSimToolInputs(stl)
         for i,w in widget.inputs.items():
             inputs[i].value = w.value
-        r = st.Run(stl, inputs)
+        r = simtool.Run(stl, inputs)
         for outk, out in widget.outputs.items():
             with out:
                 print(r.read(outk))
@@ -1053,32 +1345,6 @@ class WidgetConstructor(VBox):
         
         
 def GetSimtoolDefaultSchema( simtool_name, **kwargs ):
-    """Lookup simtool's schema by its name.
-    
-        Args:
-            simtool_name (str): SimTool name.
-
-            **button_click (str) : name of the function callback in the schema (Default "RunSimTool").
-
-            **button_description (str): name of describing callback in the schema (Default "Run SimTool")
-
-            **outputs_layout (str): layout container (Default "Accordeon")
-
-            **output (any): if passed the schema will only return this part of the schema, e.g 'inputs' (Default None)
-
-        Returns:
-            A simToolSchema dictionary containing.
-
-                name - the name of the simtool notebook if exists.
-
-                revision - the simtool revision (if installed or published).
-
-                inputs - the simtool inputs .
-
-                outputs - the simtool outputs .
-
-                layout - suggested containers layout for inputs and outputs.
-    """
     schema = simtool_constructor(None, type('Node', (object,), {"value" :simtool_name}))
     dict_schema =  {
         'name': schema['name'],
@@ -1132,15 +1398,15 @@ def simtool_constructor(self, node):
     if len(values) > 2:
         action = values[2]        
     name = tool
-    stl = st.searchForSimTool(tool)
+    stl = simtool.searchForSimTool(tool)
     if (stl['notebookPath'] == None):
         raise Exception("Simtool is not valid")
     if (stl['published'] == False):
         warnings.warn("sim2l is not published")
         name = stl['notebookPath'].replace("/","+")
         
-    inputs = st.getSimToolInputs(stl)
-    outputs = st.getSimToolOutputs(stl)
+    inputs = simtool.getSimToolInputs(stl)
+    outputs = simtool.getSimToolOutputs(stl)
     if stl['simToolRevision'] is not None:
         revision = stl['simToolRevision'].replace("r", "")
     else:
@@ -1303,3 +1569,4 @@ class ImageUpload(HBox):
     def _valid_description(self, proposal):
         self._label.value = proposal['value']
         return proposal['value']
+

@@ -26,7 +26,7 @@ def loadPlotly(*args, **kwargs):
     js += "    var state = component.state;" + eol
     js += "    var lseq = Array();" + eol
     js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
-    js += "      let sseq = sequence.split(',').filter(i => i);" + eol
+    js += "      let sseq = sequence.split(',')" + eol
     js += "      if (sseq.length>1){" + eol
     js += "        let merged = {};" + eol
     js += "        for (let seqi=0;seqi<sseq.length;seqi++ ){" + eol
@@ -36,12 +36,13 @@ def loadPlotly(*args, **kwargs):
     js += "        }" + eol
     js += "        jsonOutput[sequence] = merged;" + eol
     js += "      }" + eol
-    js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let curves = jsonOutput[sequence];" + eol
-    js += "        if (curves.startsWith('data:application/octet-stream;base64,')){" + eol
-    js += "            curves = JSON.parse(atob(curves.slice(37)));" + eol
-    js += "        }" + eol
+    js += "        try {" + eol
+    js += "            if (curves.startsWith('data:application/octet-stream;base64,')){" + eol
+    js += "                curves = JSON.parse(atob(curves.slice(37)));" + eol
+    js += "            }" + eol
+    js += "        } catch(error){ }" + eol
     js += "        let datac = JSON.parse(JSON.stringify(data));" + eol
     js += "        Object.entries(datac).forEach(([k,v]) => {" + eol
     js += "          if (v.toString().startsWith('$')){" + eol
@@ -65,19 +66,40 @@ def loadPlotly(*args, **kwargs):
     js += "            }" + eol
     js += "          }" + eol
     js += "        })" + eol
-    js += "        if (component.state.lastCache != hash_key) {" + eol
+    js += "        if (cacheList.length > 1) {" + eol
+    js += "          let o = 0.5;" + eol    
+    js += "          if (component.state.lastCache == hash_key) {" + eol
+    js += "            o = 1;" + eol    
+    js += "          }" + eol
+    js += "          let c = '';" + eol    
+    js += "          let n = '';" + eol    
+    js += "          if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['icon']){" + eol
+    js += "            c = component.state.params[hash_key]['icon'];" + eol
+    js += "          }" + eol
+    js += "          if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['title']){" + eol
+    js += "            n = component.state.params[hash_key]['title'];" + eol
+    js += "          }" + eol
+    js += "          if (c == 'warning'){ c = 'rgba(237, 108, 2,' + o + ')'; }" + eol
+    js += "          else if (c == 'success'){ c = 'rgba(46, 125, 50,' + o + ')'; }" + eol
+    js += "          else if (c == 'info'){ c = 'rgba(2, 136, 209,' + o + ')'; }" + eol
+    js += "          else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
+    js += "          else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
+    js += "          else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "          else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "          if (!('line' in datac)) " + eol
-    js += "            datac['line'] = {'color':'lightgrey'}; " + eol
+    js += "            datac['line'] = {'color' : c }; " + eol
     js += "          else " + eol
-    js += "            datac['line']['color'] = 'lightgrey'; " + eol
+    js += "            datac['line']['color'] = c; " + eol
     js += "          if (!('marker' in datac)) " + eol
-    js += "            datac['marker'] = {'color':'lightgrey'}; " + eol
+    js += "            datac['marker'] = {'color' : c}; " + eol
     js += "          else " + eol
-    js += "            datac['marker']['color'] = 'lightgrey'; " + eol
-    js += "          datac['colorscale']= 'Greys'; " + eol
-    js += "          datac['opacity']= '0.5'; " + eol
+    js += "            datac['marker']['color'] = c; " + eol
+    js += "          datac['color'] = c; " + eol
+    js += "          datac['colorscale']= [['0.0', 'rgb(255,255,255,' + o + ')'], ['1.0', c]]; " + eol
+    js += "          datac['opacity']= '' + o; " + eol
+    js += "          datac['name'] = datac['name'] + ' ' + n; " + eol
     js += "        }" + eol
-    js += "        lseq.push(datac)" + eol
+    js += "        lseq.push(datac);" + eol
     js += "      }" + eol
     js += "    });" + eol
     js += "    cdata = cdata.concat(lseq);" + eol
@@ -96,8 +118,23 @@ def loadPlotly(*args, **kwargs):
     js += "                }" + eol
     js += "                data2[k] = value;" + eol
     js += "              })" + eol
-    js += "              if (component.state.lastCache != hash_key) {" + eol
-    js += "                data2['line'] = {'color':'lightgrey'}; " + eol
+    js += "              if (cacheList.length > 1) {" + eol
+    js += "                let o = 0.5;" + eol    
+    js += "                if (component.state.lastCache == hash_key) {" + eol
+    js += "                  o = 1;" + eol    
+    js += "                }" + eol
+    js += "                let c = '';" + eol    
+    js += "                if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['icon']){" + eol
+    js += "                  c = component.state.params[hash_key]['icon'];" + eol
+    js += "                }" + eol
+    js += "                if (c == 'warning'){ c = 'rgba(237, 108, 2,' + o + ')'; }" + eol
+    js += "                else if (c == 'success'){ c = 'rgba(46, 125, 50,' + o + ')'; }" + eol
+    js += "                else if (c == 'info'){ c = 'rgba(2, 136, 209,' + o + ')'; }" + eol
+    js += "                else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
+    js += "                else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
+    js += "                else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "                else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "                data2['line'] = {'color' : c }; " + eol
     js += "              }" + eol
     js += "              lseq.push(data2)" + eol
     js += "            }" + eol
@@ -116,8 +153,23 @@ def loadPlotly(*args, **kwargs):
     js += "                  }" + eol
     js += "                  data2[k] = value;" + eol
     js += "                })" + eol
-    js += "                if (component.state.lastCache != hash_key) {" + eol
-    js += "                  data2['line'] = {'color':'lightgrey'}; " + eol
+    js += "                if (cacheList.length > 1) {" + eol
+    js += "                  let o = 0.5;" + eol    
+    js += "                  if (component.state.lastCache == hash_key) {" + eol
+    js += "                    o = 1;" + eol    
+    js += "                  }" + eol
+    js += "                  let c = '';" + eol    
+    js += "                  if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['icon']){" + eol
+    js += "                    c = component.state.params[hash_key]['icon'];" + eol
+    js += "                  }" + eol
+    js += "                  if (c == 'warning'){ c = 'rgba(237, 108, 2,' + o + ')'; }" + eol
+    js += "                  else if (c == 'success'){ c = 'rgba(46, 125, 50,' + o + ')'; }" + eol
+    js += "                  else if (c == 'info'){ c = 'rgba(2, 136, 209,' + o + ')'; }" + eol
+    js += "                  else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
+    js += "                  else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
+    js += "                  else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "                  else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "                  data2['line'] = {'color':c}; " + eol
     js += "                }" + eol
     js += "                lseq.push(data2)" + eol
     js += "              }" + eol
@@ -188,7 +240,7 @@ def loadValuePlotly(*args, **kwargs):
     js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
     js += "      let datac = JSON.parse(JSON.stringify(data));" + eol
     js += "      cdata[sequence] = {...cdata[sequence],...datac};" + eol
-    js += "      let sseq = sequence.split(',').filter(i => i);" + eol
+    js += "      let sseq = sequence.split(',')" + eol
     js += "      if (sseq.length>0){" + eol
     js += "        for (let seqi=0;seqi<sseq.length;seqi++ ){" + eol
     js += "          if (sseq[seqi] in jsonOutput){" + eol
@@ -198,9 +250,24 @@ def loadValuePlotly(*args, **kwargs):
     js += "            cvalues[sseq[seqi]].push(value);" + eol
     js += "            ccolor[hash_key] = '#1f77b4';" + eol
     js += "            copacity[hash_key] = 1;" + eol
-    js += "            if (component.state.lastCache != hash_key){" + eol
-    js += "              ccolor[hash_key] = 'lightgrey';" + eol
-    js += "              copacity[hash_key] = 0.5;" + eol
+    js += "            if (cacheList.length > 1) {" + eol
+    js += "              let o = 0.5;" + eol    
+    js += "              if (component.state.lastCache == hash_key) {" + eol
+    js += "                o = 1;" + eol    
+    js += "              }" + eol
+    js += "              let c = '';" + eol    
+    js += "              if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['icon']){" + eol
+    js += "                c = component.state.params[hash_key]['icon'];" + eol
+    js += "              }" + eol
+    js += "              if (c == 'warning'){ c = 'rgba(237, 108, 2,' + o + ')'; }" + eol
+    js += "              else if (c == 'success'){ c = 'rgba(46, 125, 50,' + o + ')'; }" + eol
+    js += "              else if (c == 'info'){ c = 'rgba(2, 136, 209,' + o + ')'; }" + eol
+    js += "              else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
+    js += "              else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
+    js += "              else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "              else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "              ccolor[hash_key] = c;" + eol
+    js += "              copacity[hash_key] = 0;" + eol    
     js += "            }" + eol
     js += "          }" + eol
     js += "        }" + eol
@@ -291,17 +358,31 @@ def loadHTML(*args, **kwargs):
     js += "    var lseq = Array();" + eol
     js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
     js += "      let datac = JSON.parse(JSON.stringify(data));" + eol
-    js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let curves = jsonOutput[sequence];" + eol
-    js += "        if (curves.startsWith('data:application/octet-stream;base64,')){" + eol
-    js += "            curves = atob(curves.slice(37));" + eol
-    js += "        }" + eol
+    js += "        try {" + eol
+    js += "            if (curves.startsWith('data:application/octet-stream;base64,')){" + eol
+    js += "                curves = atob(curves.slice(37));" + eol
+    js += "            }" + eol
+    js += "        } catch(error){ }" + eol
+    js += "        if(typeof curves !== 'string'){ curves = JSON.stringify(curves, null, 2); }" + eol
     js += "        let dom = appendDom(datac, curves);" + eol
-    js += "        if (component.state.lastCache != hash_key)" + eol
-    js += "          dom.setAttribute('style', 'border: 10px solid lightgrey');" + eol
-    js += "        else" + eol
-    js += "          dom.setAttribute('style', 'border: 10px solid #1f77b4');" + eol
+    js += "        let o = 0.1;" + eol    
+    js += "        if (component.state.lastCache == hash_key) {" + eol
+    js += "          o = 1;" + eol    
+    js += "        }" + eol
+    js += "        let c = '';" + eol    
+    js += "        if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['icon']){" + eol
+    js += "          c = component.state.params[hash_key]['icon'];" + eol
+    js += "        }" + eol
+    js += "        if (c == 'warning'){ c = 'rgba(237, 108, 2,' + o + ')'; }" + eol
+    js += "        else if (c == 'success'){ c = 'rgba(46, 125, 50,' + o + ')'; }" + eol
+    js += "        else if (c == 'info'){ c = 'rgba(2, 136, 209,' + o + ')'; }" + eol
+    js += "        else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
+    js += "        else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
+    js += "        else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "        else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "        dom.setAttribute('style', 'border: 10px solid ' + c );" + eol
     js += "        cdata.append(dom)" + eol
     js += "      }" + eol
     js += "    });" + eol
@@ -349,7 +430,6 @@ def loadTablePlotly(*args, **kwargs):
     js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
     js += "      let datac = JSON.parse(JSON.stringify(data));" + eol
     js += "      cdata = {...cdata,...datac};" + eol
-    js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let cell = '';" + eol
     js += "        try {" + eol
@@ -376,11 +456,25 @@ def loadTablePlotly(*args, **kwargs):
     js += "        } " + eol
     js += "        if (!(sequence in cheader))" + eol
     js += "          cheader[sequence] = [header];" + eol
-    js += "        if (component.state.lastCache != hash_key) {" + eol
-    js += "          ccolor[hash_key] = 'lightgrey';" + eol
-    js += "        } else {" + eol
-    js += "          ccolor[hash_key] = '#1f77b4';" + eol
+
+    
+    js += "        let o = 0.5;" + eol    
+    js += "        if (component.state.lastCache == hash_key) {" + eol
+    js += "          o = 1;" + eol    
     js += "        }" + eol
+    js += "        let c = '';" + eol    
+    js += "        if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['icon']){" + eol
+    js += "          c = component.state.params[hash_key]['icon'];" + eol
+    js += "        }" + eol
+    js += "        if (c == 'warning'){ c = 'rgba(237, 108, 2,' + o + ')'; }" + eol
+    js += "        else if (c == 'success'){ c = 'rgba(46, 125, 50,' + o + ')'; }" + eol
+    js += "        else if (c == 'info'){ c = 'rgba(2, 136, 209,' + o + ')'; }" + eol
+    js += "        else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
+    js += "        else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
+    js += "        else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "        else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "        data2['line'] = {'color' : c }; " + eol
+    js += "        ccolor[hash_key] = c;" + eol
     js += "      }" + eol
     js += "    });" + eol
     js += "  }" + eol  
@@ -441,7 +535,7 @@ def loadSequencePlotly(*args, **kwargs):
     js += "    var state = component.state;" + eol
     js += "    var lseq = Array();" + eol
     js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
-    js += "      let sseq = sequence.split(',').filter(i => i);" + eol
+    js += "      let sseq = sequence.split(',')" + eol
     js += "      if (sseq.length>1){" + eol
     js += "        let merged = {};" + eol
     js += "        for (let seqi=0;seqi<sseq.length;seqi++ ){" + eol
@@ -451,24 +545,13 @@ def loadSequencePlotly(*args, **kwargs):
     js += "        }" + eol
     js += "        jsonOutput[sequence] = merged;" + eol
     js += "      }" + eol
-    js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let mcurves = jsonOutput[sequence];" + eol
     js += "        let pos = 0;" + eol
     js += "        if (data.unique){ " + eol
     js += "          mcurves = {}" + eol
     js += "          Object.entries(cframes).forEach(([k,c]) => {" + eol
-    js += "            if (String(data.unique).startsWith('index')){" + eol
-    js += "              let shift = data.unique.replace('index','').match(/\d+/g)" + eol
-    js += "              if (shift.length>0)" + eol
-    js += "                shift = parseInt(shift[0]);" + eol
-    js += "              else" + eol
-    js += "                shift = 0;" + eol
-    js += "              let ind = Object.keys(mcurves).length + shift;" + eol
-    js += "              mcurves[k] = Object.fromEntries(Object.entries(jsonOutput[sequence]).map(([k2,v2])=>[k2,[v2[ind]]]));"  + eol
-    js += "            } else {" + eol
-    js += "              mcurves[k] = jsonOutput[sequence];" + eol
-    js += "            }" + eol
+    js += "            mcurves[k] = jsonOutput[sequence];" + eol
     js += "          });" + eol 
     js += "        }" + eol 
     js += "        Object.entries(mcurves).forEach(([key,c]) => {" + eol
@@ -498,17 +581,38 @@ def loadSequencePlotly(*args, **kwargs):
     js += "              }" + eol
     js += "            }" + eol
     js += "          })" + eol
-    js += "          if (component.state.lastCache != hash_key) {" + eol
+    js += "          if (cacheList.length > 1) {" + eol
+    js += "            let o = 0.5;" + eol    
+    js += "            if (component.state.lastCache == hash_key) {" + eol
+    js += "              o = 1;" + eol    
+    js += "            }" + eol
+    js += "            let c = '';" + eol    
+    js += "            let n = '';" + eol    
+    js += "            if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['icon']){" + eol
+    js += "              c = component.state.params[hash_key]['icon'];" + eol
+    js += "            }" + eol
+    js += "            if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['title']){" + eol
+    js += "              n = component.state.params[hash_key]['title'];" + eol
+    js += "            }" + eol
+    js += "            if (c == 'warning'){ c = 'rgba(237, 108, 2,' + o + ')'; }" + eol
+    js += "            else if (c == 'success'){ c = 'rgba(46, 125, 50,' + o + ')'; }" + eol
+    js += "            else if (c == 'info'){ c = 'rgba(2, 136, 209,' + o + ')'; }" + eol
+    js += "            else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
+    js += "            else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
+    js += "            else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "            else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "            if (!('line' in datac)) " + eol
-    js += "              datac['line'] = {'color':'lightgrey'}; " + eol
+    js += "              datac['line'] = {'color' : c }; " + eol
     js += "            else " + eol
-    js += "              datac['line']['color'] = 'lightgrey'; " + eol
+    js += "              datac['line']['color'] = c; " + eol
     js += "            if (!('marker' in datac)) " + eol
-    js += "              datac['marker'] = {'color':'lightgrey'}; " + eol
+    js += "              datac['marker'] = {'color' : c}; " + eol
     js += "            else " + eol
-    js += "              datac['marker']['color'] = 'lightgrey'; " + eol
-    js += "            datac['colorscale']= 'Greys'; " + eol
-    js += "            datac['opacity']= '0.5'; " + eol
+    js += "              datac['marker']['color'] = c; " + eol
+    js += "            datac['color'] = c; " + eol
+    js += "            datac['colorscale']= [['0.0', 'rgb(255,255,255,' + o + ')'], ['1.0', c]]; " + eol
+    js += "            datac['opacity']= '' + o; " + eol
+    js += "            datac['name'] = datac['name'] + ' ' + n; " + eol
     js += "          }" + eol
     js += "          cframes[key].push(datac);" + eol
     js += "          var minx, maxx;" + eol
@@ -545,14 +649,14 @@ def loadSequencePlotly(*args, **kwargs):
     js += "  } " + eol
     js += "  if (layout['xaxis'] && layout['xaxis']['type'] && layout['xaxis']['type'] == 'log'){" + eol
     js += "    if (layout['xaxis']['range'][0] == 0){" + eol
-    js += "      layout['xaxis']['range'][0] = 1e-6;" + eol
+    js += "      layout['xaxis']['range'][0] = 1e-20;" + eol
     js += "    }" + eol
     js += "    layout['xaxis']['range'][0] = Math.log10(layout['xaxis']['range'][0]);" + eol
     js += "    layout['xaxis']['range'][1] = Math.log10(layout['xaxis']['range'][1]);" + eol
     js += "  }" + eol
     js += "  if (layout['yaxis'] && layout['yaxis']['type'] && layout['yaxis']['type'] == 'log'){" + eol
     js += "    if (layout['yaxis']['range'][0] == 0){" + eol
-    js += "      layout['yaxis']['range'][0] = 1e-6;" + eol
+    js += "      layout['yaxis']['range'][0] = 1e-20;" + eol
     js += "    }" + eol
     js += "    layout['yaxis']['range'][0] = Math.log10(layout['yaxis']['range'][0]);" + eol
     js += "    layout['yaxis']['range'][1] = Math.log10(layout['yaxis']['range'][1]);" + eol
@@ -633,7 +737,7 @@ def loadMultiPlotly(*args, **kwargs):
     js += "    var state = component.state;" + eol
     js += "    var lseq = Array();" + eol
     js += "    Object.entries(seq).forEach(([sequence,data]) => {" + eol
-    js += "      let sseq = sequence.split(',').filter(i => i);" + eol
+    js += "      let sseq = sequence.split(',')" + eol
     js += "      if (sseq.length>1){" + eol
     js += "        let merged = {};" + eol
     js += "        for (let seqi=0;seqi<sseq.length;seqi++ ){" + eol
@@ -643,7 +747,6 @@ def loadMultiPlotly(*args, **kwargs):
     js += "        }" + eol
     js += "        jsonOutput[sequence] = merged;" + eol
     js += "      }" + eol
-    js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let curvesm = jsonOutput[sequence];" + eol
     js += "        Object.entries(curvesm).forEach(([k2,curves]) => {" + eol
@@ -660,26 +763,46 @@ def loadMultiPlotly(*args, **kwargs):
     js += "            datac['name'] = datac['name'] + ' ' +k2" + eol
     js += "          else " + eol
     js += "            datac['name'] = k2" + eol
-    js += "          if (component.state.lastCache != hash_key) {" + eol
+    js += "          if (cacheList.length > 1) {" + eol
+    js += "            let o = 0.5;" + eol    
+    js += "            if (component.state.lastCache == hash_key) {" + eol
+    js += "              o = 1;" + eol    
+    js += "            }" + eol
+    js += "            let c = '';" + eol    
+    js += "            let n = '';" + eol    
+    js += "            if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['icon']){" + eol
+    js += "              c = component.state.params[hash_key]['icon'];" + eol
+    js += "            }" + eol
+    js += "            if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['title']){" + eol
+    js += "              n = component.state.params[hash_key]['title'];" + eol
+    js += "            }" + eol
+    js += "            if (c == 'warning'){ c = 'rgba(237, 108, 2,' + o + ')'; }" + eol
+    js += "            else if (c == 'success'){ c = 'rgba(46, 125, 50,' + o + ')'; }" + eol
+    js += "            else if (c == 'info'){ c = 'rgba(2, 136, 209,' + o + ')'; }" + eol
+    js += "            else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
+    js += "            else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
+    js += "            else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "            else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "            if (!('line' in datac)) " + eol
-    js += "              datac['line'] = {'color':'lightgrey'}; " + eol
+    js += "              datac['line'] = {'color' : c }; " + eol
     js += "            else " + eol
-    js += "              datac['line']['color'] = 'lightgrey'; " + eol
+    js += "              datac['line']['color'] = c; " + eol
     js += "            if (!('marker' in datac)) " + eol
-    js += "              datac['marker'] = {'color':'lightgrey'}; " + eol
+    js += "              datac['marker'] = {'color' : c}; " + eol
     js += "            else " + eol
-    js += "              datac['marker']['color'] = 'lightgrey'; " + eol
-    js += "          datac['colorscale']= 'Greys'; " + eol
-    js += "          datac['opacity']= '0.5'; " + eol
+    js += "              datac['marker']['color'] = c; " + eol
+    js += "            datac['color'] = c; " + eol
+    js += "            datac['colorscale']= [['0.0', 'rgb(255,255,255,' + o + ')'], ['1.0', c]]; " + eol
+    js += "            datac['opacity']= '' + o; " + eol
+    js += "            datac['name'] =  datac['name'] + ' ' + n; " + eol
     js += "          }" + eol
-    js += "          lseq.push(datac)" + eol
+    js += "          lseq.push(datac);" + eol
     js += "        })" + eol
     js += "      }" + eol
     js += "    });" + eol
     js += "    cdata = cdata.concat(lseq);" + eol
     js += "    lseq = Array();" + eol
     js += "    Object.entries(shapes).forEach(([sequence,data]) => {" + eol
-    js += "      sequence = sequence.replace('+','');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let curves = jsonOutput[sequence];" + eol
     js += "        if (Array.isArray(curves)){" + eol
@@ -693,9 +816,24 @@ def loadMultiPlotly(*args, **kwargs):
     js += "                }" + eol
     js += "                data2[k] = value;" + eol
     js += "              })" + eol
-    js += "              if (component.state.lastCache != hash_key) {" + eol
-    js += "                data2['line'] = {'color':'lightgrey'}; " + eol
-    js += "              }" + eol
+    js += "              if (cacheList.length > 1) {" + eol
+    js += "                let o = 0.5;" + eol    
+    js += "                if (component.state.lastCache == hash_key) {" + eol
+    js += "                  o = 1;" + eol    
+    js += "                }" + eol
+    js += "                let c = '';" + eol    
+    js += "                if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['icon']){" + eol
+    js += "                  c = component.state.params[hash_key]['icon'];" + eol
+    js += "                }" + eol
+    js += "                if (c == 'warning'){ c = 'rgba(237, 108, 2,' + o + ')'; }" + eol
+    js += "                else if (c == 'success'){ c = 'rgba(46, 125, 50,' + o + ')'; }" + eol
+    js += "                else if (c == 'info'){ c = 'rgba(2, 136, 209,' + o + ')'; }" + eol
+    js += "                else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
+    js += "                else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
+    js += "                else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "                else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "                data2['line'] = {'color' : c }; " + eol
+    js += "              }" + eol    
     js += "              lseq.push(data2)" + eol
     js += "            }" + eol
     js += "          }" + eol
@@ -713,8 +851,23 @@ def loadMultiPlotly(*args, **kwargs):
     js += "                  }" + eol
     js += "                  data2[k] = value;" + eol
     js += "                })" + eol
-    js += "                if (component.state.lastCache != hash_key) {" + eol
-    js += "                  data2['line'] = {'color':'lightgrey'}; " + eol
+    js += "                if (cacheList.length > 1) {" + eol
+    js += "                  let o = 0.5;" + eol    
+    js += "                  if (component.state.lastCache == hash_key) {" + eol
+    js += "                    o = 1;" + eol    
+    js += "                  }" + eol
+    js += "                  let c = '';" + eol    
+    js += "                  if (component.state.params && component.state.params[hash_key] && component.state.params[hash_key]['icon']){" + eol
+    js += "                    c = component.state.params[hash_key]['icon'];" + eol
+    js += "                  }" + eol
+    js += "                  if (c == 'warning'){ c = 'rgba(237, 108, 2,' + o + ')'; }" + eol
+    js += "                  else if (c == 'success'){ c = 'rgba(46, 125, 50,' + o + ')'; }" + eol
+    js += "                  else if (c == 'info'){ c = 'rgba(2, 136, 209,' + o + ')'; }" + eol
+    js += "                  else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
+    js += "                  else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
+    js += "                  else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "                  else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "                  data2['line'] = {'color' : c }; " + eol
     js += "                }" + eol
     js += "                lseq.push(data2)" + eol
     js += "              }" + eol
@@ -779,7 +932,9 @@ def squidDetail(*args, **kwargs):
     js += "}" + eol
     return js
 
+
 def refreshViews(tp, tc, *args, **kwargs):  
+    eol = "\n"
     cache_store = kwargs.get("cache_store", "CacheStore");
     enable_compare = kwargs.get("enable_compare", True);
     views = kwargs.get("views", {});
@@ -789,21 +944,30 @@ def refreshViews(tp, tc, *args, **kwargs):
     regc = "_" + re.sub("[^a-zA-Z0-9]+", "", regc) + "_"
     js = "async (component)=>{" + eol    
     js += "  let selfr = component;" + eol
-    js += "  var listState = [];" + eol
+    js += "  let listCache = [];" + eol
+    js += "  let paramsCache = component.state.params" + eol
+    js += "  if (!paramsCache || Object.keys(paramsCache).length === 0 && paramsCache.constructor === Object){" + eol
+    js += "      paramsCache = await " + cache_store + ".getItem('cache_params');" + eol
+    js += "      if (!paramsCache || paramsCache == '')" + eol
+    js += "         paramsCache = {};" + eol
+    js += "      else" + eol
+    js += "         paramsCache = JSON.parse(paramsCache);" + eol
+    js += "  }" + eol
     js += "  var activeCache = [];" + eol
     js += "  let enable_history = false;" + eol
     js += "  if (" + cache_store + "){" + eol
     if enable_compare:
-        js += "    var olen = await " + cache_store + ".length();" + eol
-        js += "    for (let ii=0; ii<olen; ii++) {" + eol
-        js += "      var key = await " + cache_store + ".key(ii);" + eol
-        js += "      //const regex = new RegExp('" + regc + "([a-z0-9]{64})', 'im');" + eol
-        js += "      //let m;" + eol
+        js += "    var okeys = await " + cache_store + ".keys();" + eol
+        js += "    for (let ii=0; ii<okeys.length; ii++) {" + eol
+        js += "      var key = okeys[ii];" + eol
         js += "      if (key.startsWith('" + regc + "')) {" + eol
         js += "        let m = [0,key.replace('" + regc + "','')];" + eol
         js += "        if (m[1].length == 64) {" + eol
+        js += "          listCache.push(m[1]);" + eol
+        js += "          if(!paramsCache[m[1]])" + eol
+        js += "             paramsCache[m[1]] = m[1];" + eol
         js += "          if (component.state.lastCache == m[1]){ " + eol
-        js += "            activeCache.push(m[1]);" + eol
+        js += "            activeCache.unshift(m[1]);" + eol
         js += "          } else if (component.state.compare){ " + eol
         js += "            activeCache.push(m[1]);" + eol
         js += "            enable_history = true;" + eol
@@ -814,11 +978,21 @@ def refreshViews(tp, tc, *args, **kwargs):
         js += "      }" + eol
         js += "    }" + eol
     else :
-        js += "    if (component.state.lastCache != ''){" + eol
-        js += "      activeCache.push(component.state.lastCache);" + eol
+        js += "    var okeys = await " + cache_store + ".keys();" + eol
+        js += "    for (let ii=0; ii<okeys.length; ii++) {" + eol
+        js += "      var key = okeys[ii];" + eol
+        js += "      if (key.startsWith('" + regc + "')) {" + eol
+        js += "        let m = [0,key.replace('" + regc + "','')];" + eol
+        js += "        if (m[1].length == 64) {" + eol
+        js += "          listCache.push(m[1]);" + eol
+        js += "          if (component.state.lastCache == m[1]){ " + eol
+        js += "            activeCache.unshift(m[1]);" + eol
+        js += "          }" + eol
+        js += "        }" + eol
+        js += "      }" + eol
         js += "    }" + eol
 
-    js += "    selfr.setState({'enable_history': enable_history, 'active_cache':activeCache});" + eol
+    js += "    selfr.setState({'enable_history': enable_history, 'active_cache':activeCache, 'list_cache':listCache, 'params':paramsCache});" + eol
     js += "    let vis = selfr.state['visualization']; " + eol
     js += "    selfr.setState({'open_plot':selfr.state.visualization.id});" + eol
     for k,v in views.items():
@@ -844,4 +1018,4 @@ def refreshViews(tp, tc, *args, **kwargs):
         "calls": "refreshViews",
         "args": ['self', '']
       }
-    ] 
+    ]
