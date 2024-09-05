@@ -856,6 +856,9 @@ class UIDLConstructor():
         ToggleButton.content.events['click'] = [
             { "type": "stateChange", "modifies": "lastCache" ,"newState": "$local", "callbacks" : self.onRefreshViews}
         ]
+        ToggleButton.content.events['onDoubleClick'] = [
+            { "type": "stateChange", "modifies": "dialog_open","newState": True}
+        ]
 
         RepeatButton = TeleportRepeat(ToggleButton)
         RepeatButton.iteratorName = "local"

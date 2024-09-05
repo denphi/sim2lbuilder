@@ -2,7 +2,7 @@ import re
 import json
 import nanohubuidl.app as a
 from nanohubuidl.teleport import NanohubUtils
- 
+
 eol = "\n"
 
 def loadPlotly(*args, **kwargs):   
@@ -85,6 +85,8 @@ def loadPlotly(*args, **kwargs):
     js += "          else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
     js += "          else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
     js += "          else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "          else if (c == 'action'){ c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "          else if (component.state.lastCache == hash_key){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
     js += "          else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "          if (!('line' in datac)) " + eol
     js += "            datac['line'] = {'color' : c }; " + eol
@@ -133,6 +135,8 @@ def loadPlotly(*args, **kwargs):
     js += "                else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
     js += "                else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
     js += "                else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "                else if (c == 'action'){ c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "                else if (component.state.lastCache == hash_key){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
     js += "                else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "                data2['line'] = {'color' : c }; " + eol
     js += "              }" + eol
@@ -154,7 +158,7 @@ def loadPlotly(*args, **kwargs):
     js += "                  data2[k] = value;" + eol
     js += "                })" + eol
     js += "                if (cacheList.length > 1) {" + eol
-    js += "                  let o = 0.5;" + eol    
+    js += "                  let o = 0.4;" + eol    
     js += "                  if (component.state.lastCache == hash_key) {" + eol
     js += "                    o = 1;" + eol    
     js += "                  }" + eol
@@ -168,6 +172,8 @@ def loadPlotly(*args, **kwargs):
     js += "                  else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
     js += "                  else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
     js += "                  else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "                  else if (c == 'action'){ c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "                  else if (component.state.lastCache == hash_key){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
     js += "                  else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "                  data2['line'] = {'color':c}; " + eol
     js += "                }" + eol
@@ -265,6 +271,8 @@ def loadValuePlotly(*args, **kwargs):
     js += "              else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
     js += "              else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
     js += "              else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "              else if (c == 'action'){ c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "              else if (component.state.lastCache == hash_key){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
     js += "              else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "              ccolor[hash_key] = c;" + eol
     js += "              copacity[hash_key] = 0;" + eol    
@@ -381,6 +389,8 @@ def loadHTML(*args, **kwargs):
     js += "        else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
     js += "        else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
     js += "        else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "        else if (c == 'action'){ c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "        else if (component.state.lastCache == hash_key){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
     js += "        else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "        dom.setAttribute('style', 'border: 10px solid ' + c );" + eol
     js += "        cdata.append(dom)" + eol
@@ -472,6 +482,8 @@ def loadTablePlotly(*args, **kwargs):
     js += "        else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
     js += "        else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
     js += "        else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "        else if (c == 'action'){ c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "        else if (component.state.lastCache == hash_key){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
     js += "        else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "        data2['line'] = {'color' : c }; " + eol
     js += "        ccolor[hash_key] = c;" + eol
@@ -600,6 +612,8 @@ def loadSequencePlotly(*args, **kwargs):
     js += "            else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
     js += "            else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
     js += "            else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "            else if (c == 'action'){ c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "            else if (component.state.lastCache == hash_key){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
     js += "            else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "            if (!('line' in datac)) " + eol
     js += "              datac['line'] = {'color' : c }; " + eol
@@ -782,6 +796,8 @@ def loadMultiPlotly(*args, **kwargs):
     js += "            else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
     js += "            else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
     js += "            else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "            else if (c == 'action'){ c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "            else if (component.state.lastCache == hash_key){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
     js += "            else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "            if (!('line' in datac)) " + eol
     js += "              datac['line'] = {'color' : c }; " + eol
@@ -831,6 +847,8 @@ def loadMultiPlotly(*args, **kwargs):
     js += "                else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
     js += "                else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
     js += "                else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "                else if (c == 'action'){ c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "                else if (component.state.lastCache == hash_key){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
     js += "                else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "                data2['line'] = {'color' : c }; " + eol
     js += "              }" + eol    
@@ -866,6 +884,8 @@ def loadMultiPlotly(*args, **kwargs):
     js += "                  else if (c == 'error'){ c = 'rgba(211, 47, 47,' + o + ')'; }" + eol
     js += "                  else if (c == 'secondary'){ c = 'rgba(241, 241, 241,' + o + ')'; }" + eol
     js += "                  else if (c == 'primary'){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
+    js += "                  else if (c == 'action'){ c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
+    js += "                  else if (component.state.lastCache == hash_key){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
     js += "                  else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "                  data2['line'] = {'color' : c }; " + eol
     js += "                }" + eol
