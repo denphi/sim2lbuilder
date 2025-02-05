@@ -557,7 +557,7 @@ def loadSequencePlotly(*args, **kwargs):
     js += "        }" + eol
     js += "        jsonOutput[sequence] = merged;" + eol
     js += "      }" + eol
-    js += "      sequence = sequence.replace(/\+/g, '');" + eol
+    js += "      sequence = sequence.replace(/\+$/g, '');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let mcurves = jsonOutput[sequence];" + eol
     js += "        let pos = 0;" + eol
