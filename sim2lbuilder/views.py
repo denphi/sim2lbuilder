@@ -275,7 +275,7 @@ def loadValuePlotly(*args, **kwargs):
     js += "              else if (component.state.lastCache == hash_key){ c = 'rgba(105, 159, 187,' + o + ')'; }" + eol
     js += "              else { c = 'rgba(117, 117, 117,' + o + ')'; }" + eol
     js += "              ccolor[hash_key] = c;" + eol
-    js += "              copacity[hash_key] = 0;" + eol    
+    js += "              copacity[hash_key] = o;" + eol    
     js += "            }" + eol
     js += "          }" + eol
     js += "        }" + eol
@@ -557,13 +557,24 @@ def loadSequencePlotly(*args, **kwargs):
     js += "        }" + eol
     js += "        jsonOutput[sequence] = merged;" + eol
     js += "      }" + eol
+    js += "      sequence = sequence.replace(/\+/g, '');" + eol
     js += "      if (sequence in jsonOutput){" + eol
     js += "        let mcurves = jsonOutput[sequence];" + eol
     js += "        let pos = 0;" + eol
     js += "        if (data.unique){ " + eol
     js += "          mcurves = {}" + eol
     js += "          Object.entries(cframes).forEach(([k,c]) => {" + eol
-    js += "            mcurves[k] = jsonOutput[sequence];" + eol
+    js += "            if (String(data.unique).startsWith('index')){" + eol
+    js += "              let shift = data.unique.replace('index','').match(/\d+/g)" + eol
+    js += "              if (shift.length>0)" + eol
+    js += "                shift = parseInt(shift[0]);" + eol
+    js += "              else" + eol
+    js += "                shift = 0;" + eol
+    js += "              let ind = Object.keys(mcurves).length + shift;" + eol
+    js += "              mcurves[k] = Object.fromEntries(Object.entries(jsonOutput[sequence]).map(([k2,v2])=>[k2,[v2[ind]]]));" + eol
+    js += "            } else {" + eol
+    js += "              mcurves[k] = jsonOutput[sequence];" + eol
+    js += "            }" + eol
     js += "          });" + eol 
     js += "        }" + eol 
     js += "        Object.entries(mcurves).forEach(([key,c]) => {" + eol
