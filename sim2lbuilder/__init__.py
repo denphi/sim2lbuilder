@@ -24,12 +24,11 @@
 #  Daniel Mejia (denphi), Purdue University (denphi@denphi.com)
 
 
-from .sim2lbuilder import WidgetConstructor
-from .sim2lbuilder import UIDLConstructor
-from .sim2lbuilder import simtool_constructor
-from .sim2lbuilder import DictSheet
-from .sim2lbuilder import ListSheet
-from .sim2lbuilder import ImageUpload
-from .sim2lbuilder import GetSimtoolDefaultSchema
+from .widget import WidgetConstructor
+from .uidl import UIDLConstructor
+from .widget import simtool_constructor
+from .widget import DictSheet
+from .widget import ListSheet
+from .widget import ImageUpload
+from .widget import GetSimtoolDefaultSchema
 from ._version import __version__, version_info
-
